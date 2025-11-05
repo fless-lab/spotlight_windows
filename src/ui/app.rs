@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 /// Application Spotlight principale
 pub struct SpotlightApp {
-    search_engine: Arc<SearchEngine>,
     query_sender: Sender<String>,
     result_receiver: Receiver<Vec<SearchResult>>,
     query: String,
@@ -45,7 +44,6 @@ impl SpotlightApp {
         });
 
         Self {
-            search_engine,
             query_sender: query_tx,
             result_receiver: result_rx,
             query: String::new(),

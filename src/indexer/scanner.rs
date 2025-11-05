@@ -2,7 +2,6 @@ use super::{FileEntry, Indexer};
 use crate::config::Config;
 use anyhow::Result;
 use ignore::WalkBuilder;
-use rayon::prelude::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
@@ -92,23 +91,12 @@ impl Scanner {
 
             info!("Indexation de {} fichiers...", entries_vec.len());
 
-            // Utiliser rayon pour paralléliser l'indexation
-            let futures: Vec<_> = entries_vec
-                .par_iter()
-                .map(|entry| {
-                    let indexer = indexer.clone();
-                    let entry = entry.clone();
-                    tokio::spawn(async move {
-                        if let Err(e) = indexer.add_file(entry).await {
-                            warn!("Erreur lors de l'indexation: {}", e);
-                        }
-                    })
-                })
-                .collect();
-
-            // Attendre la fin de toutes les tâches
-            for future in futures {
-                let _ = future.await;
+            // Indexer tous les fichiers de manière concurrente avec tokio
+            for entry in entries_vec {
+                let indexer = indexer.clone();
+                if let Err(e) = indexer.add_file(entry).await {
+                    warn!("Erreur lors de l'indexation: {}", e);
+                }
             }
         }
 

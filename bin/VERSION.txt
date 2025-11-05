@@ -1,4 +1,4 @@
-Spotlight Windows - Version 0.2.1 (Bug Fix Release)
+Spotlight Windows - Version 0.2.2 (Critical Runtime Fix)
 
 ## Binaires Inclus
 
@@ -12,6 +12,18 @@ Spotlight Windows - Version 0.2.1 (Bug Fix Release)
    - Taille: 16 MB
    - Target: x86_64-unknown-linux-gnu
    - Build: Release (optimisé LTO)
+
+## Bug Fixes in 0.2.2 (LATEST)
+
+**CRITIQUE: Fix "there is no reactor running" panic**
+- Removed Rayon + Tokio::spawn mixing that caused runtime panic
+- Simplified scanner to use sequential async indexing
+- No more reactor context errors during file indexing
+- Scanner now properly runs in Tokio runtime context
+
+**Code cleanup**
+- Removed unused imports and dead code warnings
+- Cleaner codebase with no compilation warnings
 
 ## Bug Fixes in 0.2.1
 
