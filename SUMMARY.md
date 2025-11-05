@@ -4,6 +4,21 @@
 **Status:** ✅ **PRÊT À UTILISER !**
 **Version:** 0.2.0-dev
 
+## 🚀 TÉLÉCHARGEMENT DIRECT
+
+### Windows (x86_64) - 11 MB
+```powershell
+Invoke-WebRequest -Uri "https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows.exe" -OutFile "spotlight_windows.exe"
+.\spotlight_windows.exe
+```
+
+### Linux (x86_64) - 16 MB
+```bash
+wget https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows
+chmod +x spotlight_windows
+./spotlight_windows
+```
+
 ---
 
 ## ✨ CE QUI A ÉTÉ FAIT
@@ -276,15 +291,19 @@ spotlight_windows/
 ### Commits
 
 ```
+3c2e782 release: Add Windows executable (cross-compiled) v0.2.0-dev
+a6640ee docs: Update README with direct binary download
+47f6e80 release: Add precompiled binary v0.2.0-dev (Linux)
+8159523 docs: Add comprehensive project summary
 6b1db5b docs: Add detailed architecture documentation
-42dbcd1 docs: Add comprehensive build and installation instructions
-dcdd781 docs: Update README to reflect content search implementation
-a5bb1e2 feat: Add full-text content search (like macOS Spotlight)
-06f0f87 docs: Add comprehensive README with installation and usage
-6b05140 feat: Initial implementation of Spotlight Windows
+42dbcd1 docs: Add comprehensive build instructions
+dcdd781 docs: Update README (content search)
+a5bb1e2 feat: Add full-text content search (macOS Spotlight)
+06f0f87 docs: Add comprehensive README
+6b05140 feat: Initial implementation
 ```
 
-**Total:** 6 commits
+**Total:** 10 commits
 **Branch:** `claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn`
 **Pushed:** ✅ Oui
 
