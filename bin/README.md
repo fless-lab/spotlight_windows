@@ -1,8 +1,59 @@
-# 📦 Spotlight Windows - Binaire Précompilé
+# 📦 Spotlight Windows - Binaires Précompilés
 
 ## 🚀 Installation Rapide
 
-**Pas besoin de compiler !** Téléchargez directement l'exécutable :
+**Pas besoin de compiler !** Téléchargez directement le binaire pour votre plateforme.
+
+## 🪟 Pour Windows (x86_64)
+
+### Téléchargement Direct
+
+```powershell
+# Télécharger
+Invoke-WebRequest -Uri "https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows.exe" -OutFile "spotlight_windows.exe"
+
+# Lancer
+.\spotlight_windows.exe
+```
+
+**Ou depuis le dépôt :**
+```powershell
+git clone https://github.com/fless-lab/spotlight_windows.git
+cd spotlight_windows\bin
+.\spotlight_windows.exe
+```
+
+### Alternative: Compiler sur Windows (pour hotkey global)
+
+```powershell
+# 1. Installer Rust (https://rustup.rs/)
+# Télécharger et exécuter rustup-init.exe
+
+# 2. Cloner le projet
+git clone https://github.com/fless-lab/spotlight_windows.git
+cd spotlight_windows
+
+# 3. Build release (5 minutes la première fois)
+cargo build --release
+
+# 4. Lancer
+.\target\release\spotlight_windows.exe
+```
+
+### Méthode 2: Cross-compiler depuis Linux (Avancé)
+
+```bash
+# Installer le target Windows
+rustup target add x86_64-pc-windows-gnu
+
+# Cross-compiler (nécessite mingw)
+sudo apt-get install mingw-w64
+cargo build --release --target x86_64-pc-windows-gnu
+
+# Le .exe sera dans target/x86_64-pc-windows-gnu/release/
+```
+
+## 🐧 Pour Linux (Binaire Disponible)
 
 ### Linux (x86_64)
 

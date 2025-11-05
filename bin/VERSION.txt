@@ -1,0 +1,37 @@
+Spotlight Windows - Version 0.2.0-dev
+
+## Binaires Inclus
+
+1. spotlight_windows.exe (Windows x86_64)
+   - Taille: 11 MB
+   - Target: x86_64-pc-windows-gnu
+   - Build: Release (optimisé)
+   - Note: Hotkey global désactivé (compile nativement sur Windows pour l'activer)
+
+2. spotlight_windows (Linux x86_64)
+   - Taille: 16 MB
+   - Target: x86_64-unknown-linux-gnu
+   - Build: Release (optimisé LTO)
+
+## Features
+
+- Recherche ultra-rapide (< 10ms)
+- Recherche de contenu (30+ formats texte)
+- Indexation multi-threadée
+- File watching temps réel
+- Cache LRU intelligent
+- UI moderne 60 FPS (egui)
+- Fuzzy matching
+
+## Compilation
+
+Build date: 2025-11-05
+Rust version: 1.70+
+Compiler flags: opt-level=3, lto=fat, codegen-units=1, strip=true
+
+## Support
+
+- Windows 10+ (64-bit)
+- Linux (64-bit)
+
+Voir README.md pour plus d'informations.

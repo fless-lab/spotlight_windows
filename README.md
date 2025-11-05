@@ -75,19 +75,35 @@ Spotlight Windows apporte la puissance et la rapidité du Spotlight de macOS à 
 
 **Pas besoin de Rust !** Téléchargez le binaire précompilé :
 
+#### Windows (x86_64)
+
+```powershell
+# Télécharger l'exécutable
+Invoke-WebRequest -Uri "https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows.exe" -OutFile "spotlight_windows.exe"
+
+# Lancer
+.\spotlight_windows.exe
+```
+
+#### Linux (x86_64)
+
 ```bash
-# Linux x86_64
+# Télécharger
 wget https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows
 chmod +x spotlight_windows
 ./spotlight_windows
 ```
 
-**Ou depuis le dépôt :**
+**Ou cloner le dépôt :**
 ```bash
 git clone https://github.com/fless-lab/spotlight_windows.git
 cd spotlight_windows/bin
-chmod +x spotlight_windows
-./spotlight_windows
+
+# Windows
+.\spotlight_windows.exe
+
+# Linux
+chmod +x spotlight_windows && ./spotlight_windows
 ```
 
 📁 **Voir `bin/README.md` pour plus de détails**

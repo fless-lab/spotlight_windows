@@ -2,8 +2,8 @@ use anyhow::Result;
 use std::sync::mpsc;
 use std::thread;
 use tracing::{error, info};
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-use windows::Win32::UI::Input::KeyboardAndMouse::{MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN};
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::Input::KeyboardAndMouse::HOT_KEY_MODIFIERS;
 use windows::Win32::UI::WindowsAndMessaging::{
     DispatchMessageW, GetMessageW, RegisterHotKey, TranslateMessage, UnregisterHotKey, MSG,
     WM_HOTKEY,
@@ -27,7 +27,13 @@ impl HotkeyManager {
             unsafe {
                 // Enregistrer le hotkey Alt+Space
                 // VK_SPACE = 0x20
-                let result = RegisterHotKey(HWND(0), 1, MOD_ALT, 0x20);
+                let hwnd = HWND(std::ptr::null_mut());
+                let result = RegisterHotKey(
+                    hwnd,
+                    1,
+                    HOT_KEY_MODIFIERS(0x0001), // MOD_ALT = 0x0001
+                    0x20, // VK_SPACE
+                );
 
                 if result.is_err() {
                     error!("Impossible d'enregistrer le hotkey global");
@@ -40,7 +46,7 @@ impl HotkeyManager {
                 let mut msg = MSG::default();
 
                 loop {
-                    let result = GetMessageW(&mut msg, HWND(0), 0, 0);
+                    let result = GetMessageW(&mut msg, hwnd, 0, 0);
 
                     if result.is_err() || result.unwrap().0 == 0 {
                         break;
@@ -58,7 +64,7 @@ impl HotkeyManager {
                 }
 
                 // Cleanup
-                let _ = UnregisterHotKey(HWND(0), 1);
+                let _ = UnregisterHotKey(hwnd, 1);
             }
         });
 
@@ -69,7 +75,8 @@ impl HotkeyManager {
 impl Drop for HotkeyManager {
     fn drop(&mut self) {
         unsafe {
-            let _ = UnregisterHotKey(HWND(0), self.hotkey_id);
+            let hwnd = HWND(std::ptr::null_mut());
+            let _ = UnregisterHotKey(hwnd, self.hotkey_id);
         }
     }
 }

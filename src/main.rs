@@ -3,8 +3,10 @@ mod indexer;
 mod search;
 mod ui;
 
-#[cfg(windows)]
-mod hotkey;
+// Hotkey désactivé pour cross-compile
+// Compiler nativement sur Windows pour l'activer
+// #[cfg(windows)]
+// mod hotkey;
 
 use anyhow::Result;
 use config::Config;
