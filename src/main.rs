@@ -31,6 +31,10 @@ async fn main() -> Result<()> {
     // Charger la configuration
     let config = Arc::new(Config::load()?);
     info!("Configuration chargée");
+    info!("📁 Chemins à indexer:");
+    for path in &config.indexer.include_paths {
+        info!("  - {:?}", path);
+    }
 
     // Créer l'indexeur Tantivy
     let indexer = Arc::new(Indexer::new(config.clone())?);

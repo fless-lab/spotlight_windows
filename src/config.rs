@@ -57,7 +57,16 @@ pub struct SearchConfig {
 impl Default for Config {
     fn default() -> Self {
         // Utiliser le dossier home de l'utilisateur
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("C:\\Users"));
+        // Sur Windows, USERPROFILE est plus fiable que dirs::home_dir()
+        let home = if cfg!(windows) {
+            std::env::var("USERPROFILE")
+                .ok()
+                .map(PathBuf::from)
+                .or_else(dirs::home_dir)
+                .unwrap_or_else(|| PathBuf::from("C:\\Users\\Default"))
+        } else {
+            dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home"))
+        };
 
         Self {
             indexer: IndexerConfig {
@@ -94,7 +103,7 @@ impl Default for Config {
             search: SearchConfig {
                 cache_size: 1000,
                 min_fuzzy_score: 50,
-                search_file_content: false,
+                search_file_content: true, // Activer par défaut
             },
         }
     }
