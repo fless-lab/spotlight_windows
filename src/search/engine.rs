@@ -35,6 +35,7 @@ impl SearchEngine {
 
     /// Recherche des fichiers
     pub async fn search(&self, query: &str, max_results: usize) -> Result<Vec<SearchResult>> {
+        // Accepter même 1 caractère
         if query.is_empty() {
             return Ok(vec![]);
         }
@@ -48,7 +49,7 @@ impl SearchEngine {
         let start = std::time::Instant::now();
 
         // Recherche dans l'index Tantivy
-        let results = self.search_tantivy(query, max_results).await?;
+        let results = self.search_tantivy(query, max_results * 3).await?;
 
         // Appliquer le fuzzy matching pour améliorer le ranking
         let mut scored_results = self.apply_fuzzy_scoring(query, results);
@@ -88,13 +89,24 @@ impl SearchEngine {
         let path_field = schema.get_field("path").unwrap();
         let content_field = schema.get_field("content").unwrap();
 
-        let query_parser = QueryParser::for_index(
+        let mut query_parser = QueryParser::for_index(
             index,
             vec![name_field, path_field, content_field]
         );
 
-        // Parser la query (avec wildcards automatiques)
-        let query_str = format!("{}*", query);
+        // Tokenizer plus permissif pour les recherches courtes
+        query_parser.set_conjunction_by_default();
+
+        // Parser la query avec wildcards pour matching partiel
+        // Support pour les queries courtes (1+ caractères)
+        let query_str = if query.len() <= 2 {
+            // Pour 1-2 caractères, recherche avec wildcard au début et à la fin
+            format!("*{}*", query.to_lowercase())
+        } else {
+            // Pour 3+ caractères, wildcard à la fin seulement
+            format!("{}*", query.to_lowercase())
+        };
+
         let tantivy_query = query_parser.parse_query(&query_str)?;
 
         // Rechercher

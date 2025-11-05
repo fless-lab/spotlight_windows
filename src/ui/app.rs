@@ -6,6 +6,9 @@ use egui::{
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 /// Application Spotlight principale
 pub struct SpotlightApp {
     query_sender: Sender<String>,
@@ -89,8 +92,10 @@ impl SpotlightApp {
             #[cfg(target_os = "windows")]
             {
                 let path = &self.results[self.selected_index].path;
-                let _ = std::process::Command::new("explorer")
-                    .arg(path.to_string_lossy().to_string())
+                // Utiliser cmd /c start pour ouvrir avec l'application par défaut
+                let _ = std::process::Command::new("cmd")
+                    .args(&["/c", "start", "", &path.to_string_lossy()])
+                    .creation_flags(0x08000000) // CREATE_NO_WINDOW
                     .spawn();
             }
 

@@ -74,7 +74,13 @@ impl Default for Config {
                     home.join("Documents"),
                     home.join("Desktop"),
                     home.join("Downloads"),
-                    // home.join("Pictures"), // Optionnel
+                    home.join("Pictures"),
+                    home.join("Videos"),
+                    home.join("Music"),
+                    home.join("OneDrive"),
+                    // Scanner aussi les dossiers communs
+                    PathBuf::from("C:\\Program Files"),
+                    PathBuf::from("C:\\Program Files (x86)"),
                 ],
                 exclude_paths: vec![
                     "node_modules".to_string(),
@@ -90,8 +96,8 @@ impl Default for Config {
                     ".cache".to_string(),
                 ],
                 file_extensions: vec![],
-                num_threads: num_cpus::get().min(4), // Max 4 threads
-                max_file_size_mb: 10, // Réduire à 10MB
+                num_threads: num_cpus::get().min(8), // Utiliser jusqu'à 8 threads
+                max_file_size_mb: 50, // Augmenter à 50MB pour plus de fichiers
             },
             ui: UiConfig {
                 window_width: 800.0,

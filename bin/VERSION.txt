@@ -1,4 +1,4 @@
-Spotlight Windows - Version 0.2.2 (Critical Runtime Fix)
+Spotlight Windows - Version 0.2.3 (Major Improvements)
 
 ## Binaires Inclus
 
@@ -13,7 +13,29 @@ Spotlight Windows - Version 0.2.2 (Critical Runtime Fix)
    - Target: x86_64-unknown-linux-gnu
    - Build: Release (optimisé LTO)
 
-## Bug Fixes in 0.2.2 (LATEST)
+## Improvements in 0.2.3 (LATEST)
+
+**CRITIQUE: Fix file opening crash**
+- Use cmd /c start instead of explorer.exe for proper file associations
+- Files now open with correct default applications
+- No more app crash when clicking on files
+- CREATE_NO_WINDOW flag to avoid console popup
+
+**MAJOR: Expanded search coverage**
+- Added Pictures, Videos, Music, OneDrive to default paths
+- Now indexes Program Files and Program Files (x86)
+- Increased to 8 threads for faster indexing (was 4)
+- Increased max file size to 50MB (was 10MB)
+- Much more comprehensive system coverage
+
+**MAJOR: Better search UX**
+- Works with 1+ character now (was 3+)
+- Smart wildcard: *query* for 1-2 chars, query* for 3+ chars
+- Content search properly enabled and working
+- Search 3x more results then rank them (better quality)
+- More permissive query parser
+
+## Bug Fixes in 0.2.2
 
 **CRITIQUE: Fix "there is no reactor running" panic**
 - Removed Rayon + Tokio::spawn mixing that caused runtime panic
