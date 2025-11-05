@@ -17,10 +17,12 @@ Spotlight Windows apporte la puissance et la rapidité du Spotlight de macOS à 
 
 ### 🔎 Recherche Avancée
 - **Recherche par nom de fichier** (instantanée)
+- **Recherche dans le contenu** ✨ (comme macOS Spotlight !) - Trouve du texte DANS les fichiers
 - **Recherche fuzzy** (trouve même avec des fautes de frappe)
 - **Métadonnées** (taille, date de modification, type de fichier)
 - **Scoring intelligent** (pertinence + récence + type)
 - **Résultats en temps réel** (mise à jour pendant la frappe)
+- **30+ formats texte** supportés (TXT, MD, RS, JSON, XML, HTML, CSS, JS, PY, etc.)
 
 ### 👀 Surveillance en Temps Réel
 - **File watcher** automatique (détecte les ajouts/modifications/suppressions)
@@ -158,8 +160,8 @@ cache_size = 1000
 # Score minimum pour fuzzy matching
 min_fuzzy_score = 50
 
-# Recherche dans le contenu (à venir)
-search_file_content = false
+# Recherche dans le contenu (ACTIVÉ!)
+search_file_content = true
 ```
 
 ### Première utilisation
@@ -238,8 +240,9 @@ Tests effectués sur un PC avec SSD NVMe, Intel i7-10700K, 32GB RAM:
 ## 🗺️ Roadmap
 
 ### Version 0.2.0 (En cours)
+- [x] **Recherche dans le contenu** (TXT, MD, Code sources) ✅ **FAIT !**
+- [ ] **Recherche contenu PDF/DOCX** (nécessite bibliothèques extraction)
 - [ ] **Architecture Sentinel/Worker** (MFT + Content indexing)
-- [ ] **Recherche dans le contenu** (PDF, DOCX, TXT)
 - [ ] **Hotkey global** (Alt+Space)
 - [ ] **Icônes système** pour les fichiers
 
