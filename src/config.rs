@@ -56,23 +56,33 @@ pub struct SearchConfig {
 
 impl Default for Config {
     fn default() -> Self {
+        // Utiliser le dossier home de l'utilisateur
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("C:\\Users"));
+
         Self {
             indexer: IndexerConfig {
                 include_paths: vec![
-                    PathBuf::from("C:\\Users"),
-                    PathBuf::from("C:\\Program Files"),
-                    PathBuf::from("C:\\ProgramData"),
+                    home.join("Documents"),
+                    home.join("Desktop"),
+                    home.join("Downloads"),
+                    // home.join("Pictures"), // Optionnel
                 ],
                 exclude_paths: vec![
                     "node_modules".to_string(),
                     ".git".to_string(),
                     "target".to_string(),
                     "$RECYCLE.BIN".to_string(),
-                    "AppData\\Local\\Temp".to_string(),
+                    "AppData".to_string(), // Tout AppData
+                    ".vscode".to_string(),
+                    ".idea".to_string(),
+                    "__pycache__".to_string(),
+                    "build".to_string(),
+                    "dist".to_string(),
+                    ".cache".to_string(),
                 ],
                 file_extensions: vec![],
-                num_threads: num_cpus::get(),
-                max_file_size_mb: 100,
+                num_threads: num_cpus::get().min(4), // Max 4 threads
+                max_file_size_mb: 10, // Réduire à 10MB
             },
             ui: UiConfig {
                 window_width: 800.0,

@@ -3,13 +3,14 @@ use crate::search::{SearchEngine, SearchResult};
 use egui::{
     Color32, FontId, Key, ScrollArea, Sense, TextEdit, TextStyle, Vec2,
 };
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 
 /// Application Spotlight principale
 pub struct SpotlightApp {
     search_engine: Arc<SearchEngine>,
-    runtime: Runtime,
+    query_sender: Sender<String>,
+    result_receiver: Receiver<Vec<SearchResult>>,
     query: String,
     results: Vec<SearchResult>,
     selected_index: usize,
@@ -19,11 +20,34 @@ pub struct SpotlightApp {
 
 impl SpotlightApp {
     pub fn new(search_engine: Arc<SearchEngine>) -> Self {
-        let runtime = Runtime::new().expect("Failed to create Tokio runtime");
+        // Créer des channels pour communication async
+        let (query_tx, query_rx) = channel::<String>();
+        let (result_tx, result_rx) = channel::<Vec<SearchResult>>();
+
+        // Thread dédié pour les recherches
+        let search_engine_clone = search_engine.clone();
+        std::thread::spawn(move || {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+
+            while let Ok(query) = query_rx.recv() {
+                let search_engine = search_engine_clone.clone();
+                let result_sender = result_tx.clone();
+
+                runtime.spawn(async move {
+                    let results = search_engine
+                        .search(&query, 50)
+                        .await
+                        .unwrap_or_else(|_| vec![]);
+
+                    let _ = result_sender.send(results);
+                });
+            }
+        });
 
         Self {
             search_engine,
-            runtime,
+            query_sender: query_tx,
+            result_receiver: result_rx,
             query: String::new(),
             results: Vec::new(),
             selected_index: 0,
@@ -52,25 +76,13 @@ impl SpotlightApp {
     fn perform_search(&mut self) {
         if self.query.is_empty() {
             self.results.clear();
+            self.is_searching = false;
             return;
         }
 
-        let query = self.query.clone();
-        let search_engine = self.search_engine.clone();
-
+        // Envoyer la query au thread de recherche
+        let _ = self.query_sender.send(self.query.clone());
         self.is_searching = true;
-
-        // Recherche asynchrone
-        let results = self.runtime.block_on(async move {
-            search_engine
-                .search(&query, 50)
-                .await
-                .unwrap_or_else(|_| vec![])
-        });
-
-        self.results = results;
-        self.is_searching = false;
-        self.selected_index = 0;
     }
 
     /// Ouvre le fichier/dossier sélectionné
@@ -108,6 +120,13 @@ impl SpotlightApp {
 
 impl eframe::App for SpotlightApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Vérifier si des résultats sont arrivés
+        if let Ok(results) = self.result_receiver.try_recv() {
+            self.results = results;
+            self.is_searching = false;
+            self.selected_index = 0;
+        }
+
         // Setup du thème une seule fois
         if ctx.style().text_styles.get(&TextStyle::Heading).is_none()
             || ctx.style().text_styles[&TextStyle::Heading].size != 24.0

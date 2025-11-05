@@ -1,4 +1,4 @@
-Spotlight Windows - Version 0.2.0-dev
+Spotlight Windows - Version 0.2.1 (Bug Fix Release)
 
 ## Binaires Inclus
 
@@ -12,6 +12,20 @@ Spotlight Windows - Version 0.2.0-dev
    - Taille: 16 MB
    - Target: x86_64-unknown-linux-gnu
    - Build: Release (optimisé LTO)
+
+## Bug Fixes in 0.2.1
+
+**CRITIQUE: Correction du crash "Cannot start a runtime from within a runtime"**
+- Refonte complète de l'architecture UI avec channels async
+- Thread de recherche dédié avec son propre runtime Tokio
+- Plus de blocage dans le thread principal UI
+- Correction du freeze PC au lancement
+
+**Optimisations par défaut**
+- Chemins d'indexation réduits (Documents/Desktop/Downloads seulement)
+- Limite de 4 threads max pour l'indexation
+- Taille max des fichiers réduite à 10MB
+- NOTE: Ces valeurs sont PERSONNALISABLES dans config.toml
 
 ## Features
 
