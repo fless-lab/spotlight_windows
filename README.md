@@ -71,13 +71,34 @@ Spotlight Windows apporte la puissance et la rapidité du Spotlight de macOS à 
 
 ## 📦 Installation
 
-### Prérequis
+### ⚡ Méthode 1: Téléchargement Direct (le plus rapide!)
+
+**Pas besoin de Rust !** Téléchargez le binaire précompilé :
+
+```bash
+# Linux x86_64
+wget https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows
+chmod +x spotlight_windows
+./spotlight_windows
+```
+
+**Ou depuis le dépôt :**
+```bash
+git clone https://github.com/fless-lab/spotlight_windows.git
+cd spotlight_windows/bin
+chmod +x spotlight_windows
+./spotlight_windows
+```
+
+📁 **Voir `bin/README.md` pour plus de détails**
+
+### Prérequis (pour compilation depuis sources)
 
 - **Rust 1.70+** ([installer ici](https://rustup.rs/))
-- **Windows 10+** (64-bit)
+- **Windows 10+** (64-bit) ou **Linux**
 - **~500 MB** d'espace disque pour les dépendances
 
-### Méthode 1: Build depuis les sources (recommandé)
+### Méthode 2: Build depuis les sources
 
 ```bash
 # Cloner le repository
@@ -91,7 +112,7 @@ cargo build --release
 ./target/release/spotlight_windows.exe
 ```
 
-### Méthode 2: Installation directe
+### Méthode 3: Installation via Cargo
 
 ```bash
 # Installer directement depuis le repository
