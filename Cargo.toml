@@ -1,0 +1,64 @@
+[package]
+name = "spotlight_windows"
+version = "0.1.0"
+edition = "2021"
+authors = ["Spotlight Windows Team"]
+
+[dependencies]
+# UI Framework - egui pour performances maximales
+eframe = "0.29"
+egui = "0.29"
+
+# Search Engine - Tantivy pour indexation ultra-rapide
+tantivy = "0.22"
+
+# Async Runtime
+tokio = { version = "1.41", features = ["full"] }
+
+# File System
+notify = "6.1"
+walkdir = "2.5"
+ignore = "0.4"
+
+# Parallélisme
+rayon = "1.10"
+crossbeam = "0.8"
+
+# Cache ultra-rapide
+moka = { version = "0.12", features = ["future"] }
+
+# Windows API pour hotkey global
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_Threading",
+    "Win32_Storage_FileSystem",
+] }
+
+# Serialization et config
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utils
+anyhow = "1.0"
+thiserror = "1.0"
+chrono = "0.4"
+fuzzy-matcher = "0.3"
+num_cpus = "1.16"
+dirs = "5.0"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1
