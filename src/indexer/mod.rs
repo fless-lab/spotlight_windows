@@ -20,6 +20,7 @@ pub struct FileEntry {
     pub size: u64,
     pub modified: i64,
     pub is_directory: bool,
+    pub content: Option<String>, // Contenu du fichier pour recherche full-text
 }
 
 /// Gestionnaire de l'index Tantivy
@@ -43,6 +44,9 @@ impl Indexer {
         schema_builder.add_u64_field("size", INDEXED | STORED);
         schema_builder.add_date_field("modified", INDEXED | STORED);
         schema_builder.add_bool_field("is_directory", INDEXED | STORED);
+
+        // NOUVEAU: Champ pour le contenu des fichiers (recherche full-text)
+        schema_builder.add_text_field("content", TEXT);
 
         let schema = schema_builder.build();
 
@@ -82,9 +86,11 @@ impl Indexer {
         let size_field = self.schema.get_field("size").unwrap();
         let modified_field = self.schema.get_field("modified").unwrap();
         let is_directory_field = self.schema.get_field("is_directory").unwrap();
+        let content_field = self.schema.get_field("content").unwrap();
 
         // Créer le document avec la macro doc!
         let extension_str = entry.extension.as_deref().unwrap_or("");
+        let content_str = entry.content.as_deref().unwrap_or("");
 
         let document = if entry.extension.is_some() {
             doc!(
@@ -93,7 +99,8 @@ impl Indexer {
                 extension_field => extension_str,
                 size_field => entry.size,
                 modified_field => tantivy::DateTime::from_timestamp_secs(entry.modified),
-                is_directory_field => entry.is_directory
+                is_directory_field => entry.is_directory,
+                content_field => content_str
             )
         } else {
             doc!(
@@ -101,7 +108,8 @@ impl Indexer {
                 name_field => entry.name.as_str(),
                 size_field => entry.size,
                 modified_field => tantivy::DateTime::from_timestamp_secs(entry.modified),
-                is_directory_field => entry.is_directory
+                is_directory_field => entry.is_directory,
+                content_field => content_str
             )
         };
 

@@ -83,11 +83,15 @@ impl SearchEngine {
 
         let searcher = reader.searcher();
 
-        // Créer une query sur les champs name et path
+        // Créer une query sur les champs name, path ET content
         let name_field = schema.get_field("name").unwrap();
         let path_field = schema.get_field("path").unwrap();
+        let content_field = schema.get_field("content").unwrap();
 
-        let query_parser = QueryParser::for_index(index, vec![name_field, path_field]);
+        let query_parser = QueryParser::for_index(
+            index,
+            vec![name_field, path_field, content_field]
+        );
 
         // Parser la query (avec wildcards automatiques)
         let query_str = format!("{}*", query);

@@ -131,6 +131,13 @@ impl FileWatcher {
             .ok()?
             .as_secs() as i64;
 
+        // Extraire le contenu pour les fichiers texte
+        let content = if !metadata.is_dir() {
+            Self::extract_content(path, &extension, size)
+        } else {
+            None
+        };
+
         Some(FileEntry {
             path: path.to_path_buf(),
             name,
@@ -138,6 +145,42 @@ impl FileWatcher {
             size,
             modified,
             is_directory: metadata.is_dir(),
+            content,
+        })
+    }
+
+    /// Extrait le contenu d'un fichier texte
+    fn extract_content(path: &PathBuf, extension: &Option<String>, size: u64) -> Option<String> {
+        // Limite de taille: 1 MB
+        const MAX_CONTENT_SIZE: u64 = 1024 * 1024;
+
+        if size > MAX_CONTENT_SIZE {
+            return None;
+        }
+
+        // Extensions de fichiers texte à indexer
+        const TEXT_EXTENSIONS: &[&str] = &[
+            "txt", "md", "rs", "toml", "json", "xml", "yaml", "yml",
+            "js", "ts", "py", "go", "c", "cpp", "h", "hpp",
+            "java", "cs", "rb", "php", "html", "css", "scss",
+            "sh", "bash", "ps1", "bat", "cmd", "log", "ini", "cfg"
+        ];
+
+        let is_text = extension
+            .as_ref()
+            .map(|ext| TEXT_EXTENSIONS.contains(&ext.to_lowercase().as_str()))
+            .unwrap_or(false);
+
+        if !is_text {
+            return None;
+        }
+
+        std::fs::read_to_string(path).ok().map(|content| {
+            if content.len() > 10_000 {
+                content.chars().take(10_000).collect()
+            } else {
+                content
+            }
         })
     }
 }
