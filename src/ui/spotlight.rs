@@ -143,6 +143,47 @@ impl eframe::App for SpotlightPalette {
                 ui.set_max_width(720.0);
                 ui.set_min_width(720.0);
 
+                // === TITLEBAR DRAGGABLE + BOUTON FERMER ===
+                egui::Frame::none()
+                    .inner_margin(Margin {
+                        left: 16.0,
+                        right: 8.0,
+                        top: 8.0,
+                        bottom: 4.0,
+                    })
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            // Zone draggable
+                            let titlebar_rect = ui.allocate_space(Vec2::new(640.0, 20.0)).1;
+                            if ui.interact(titlebar_rect, ui.id().with("titlebar"), Sense::drag()).dragged() {
+                                // Permet de déplacer la fenêtre
+                                if let Some(mut pos) = ctx.input(|i| i.pointer.interact_pos()) {
+                                    ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
+                                }
+                            }
+
+                            // Bouton X (fermer)
+                            let close_button = ui.add(
+                                egui::Button::new(
+                                    egui::RichText::new("✕")
+                                        .size(16.0)
+                                        .color(Color32::from_gray(200))
+                                )
+                                .fill(Color32::TRANSPARENT)
+                                .stroke(Stroke::NONE)
+                                .rounding(Rounding::same(4.0))
+                            );
+
+                            if close_button.clicked() {
+                                std::process::exit(0); // Fermer l'app
+                            }
+
+                            if close_button.hovered() {
+                                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                            }
+                        });
+                    });
+
                 // === BARRE DE RECHERCHE ===
                 egui::Frame::none()
                     .inner_margin(Margin {
