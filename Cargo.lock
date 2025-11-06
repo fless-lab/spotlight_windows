@@ -3492,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "spotlight_windows"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "chrono",

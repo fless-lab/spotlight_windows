@@ -176,4 +176,85 @@ impl Config {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test de la configuration par défaut
+    #[test]
+    fn test_default_config() {
+        let config = Config::default();
+
+        // Vérifier les valeurs par défaut de l'indexer
+        assert!(!config.indexer.include_paths.is_empty());
+        assert!(config.indexer.num_threads > 0);
+        assert_eq!(config.indexer.max_file_size_mb, 50);
+
+        // Vérifier les valeurs par défaut de l'UI
+        assert_eq!(config.ui.window_width, 800.0);
+        assert_eq!(config.ui.window_height, 600.0);
+        assert_eq!(config.ui.max_results, 50);
+        assert_eq!(config.ui.hotkey_modifiers, vec!["Alt"]);
+        assert_eq!(config.ui.hotkey_key, "Space");
+
+        // Vérifier les valeurs par défaut de la recherche
+        assert_eq!(config.search.cache_size, 1000);
+        assert_eq!(config.search.min_fuzzy_score, 50);
+        assert!(config.search.search_file_content);
+    }
+
+    /// Test de la détection du répertoire home
+    #[test]
+    fn test_home_path_detection() {
+        let config = Config::default();
+
+        // Vérifier qu'au moins un chemin est configuré
+        assert!(!config.indexer.include_paths.is_empty(),
+            "Au moins un chemin devrait être configuré par défaut");
+
+        // Vérifier que les chemins existent ou contiennent des patterns attendus
+        let has_valid_paths = config.indexer.include_paths.iter()
+            .any(|p| {
+                p.exists() ||
+                p.to_string_lossy().contains("Users") ||
+                p.to_string_lossy().contains("home") ||
+                p.to_string_lossy().contains("Program Files")
+            });
+
+        assert!(has_valid_paths, "Au moins un chemin valide devrait être configuré");
+    }
+
+    /// Test de la validation des valeurs de configuration
+    #[test]
+    fn test_config_validation() {
+        let config = Config::default();
+
+        // Les valeurs doivent être dans des plages raisonnables
+        assert!(config.ui.window_width > 0.0 && config.ui.window_width <= 4000.0);
+        assert!(config.ui.window_height > 0.0 && config.ui.window_height <= 4000.0);
+        assert!(config.ui.max_results > 0 && config.ui.max_results <= 1000);
+        assert!(config.search.cache_size > 0);
+        assert!(config.search.min_fuzzy_score >= 0 && config.search.min_fuzzy_score <= 100);
+        assert!(config.indexer.max_file_size_mb > 0);
+    }
+
+    /// Test de la sérialisation/désérialisation TOML
+    #[test]
+    fn test_toml_serialization() {
+        let config = Config::default();
+
+        // Sérialiser en TOML
+        let toml_str = toml::to_string(&config).expect("Failed to serialize config");
+
+        // Désérialiser depuis TOML
+        let deserialized: Config = toml::from_str(&toml_str).expect("Failed to deserialize config");
+
+        // Vérifier que les valeurs sont identiques
+        assert_eq!(config.ui.window_width, deserialized.ui.window_width);
+        assert_eq!(config.ui.max_results, deserialized.ui.max_results);
+        assert_eq!(config.search.cache_size, deserialized.search.cache_size);
+        assert_eq!(config.indexer.max_file_size_mb, deserialized.indexer.max_file_size_mb);
+    }
+}
+
 // Ajout de num_cpus et dirs comme dépendances

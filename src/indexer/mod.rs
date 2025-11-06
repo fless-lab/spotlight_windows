@@ -2,7 +2,7 @@ pub mod scanner;
 pub mod watcher;
 
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tantivy::schema::*;
 use tantivy::{doc, Index, IndexWriter};
@@ -155,7 +155,7 @@ impl Indexer {
     }
 
     /// Supprime un fichier de l'index
-    pub async fn remove_file(&self, path: &PathBuf) -> Result<()> {
+    pub async fn remove_file(&self, path: &Path) -> Result<()> {
         let path_field = self.schema.get_field("path").unwrap();
         let term = Term::from_field_text(path_field, &path.to_string_lossy());
 
@@ -175,21 +175,11 @@ impl Indexer {
         &self.schema
     }
 
-    /// Vérifie si l'index contient des documents
-    pub fn has_documents(&self) -> bool {
-        if let Ok(reader) = self.index.reader() {
-            let searcher = reader.searcher();
-            searcher.num_docs() > 0
-        } else {
-            false
-        }
-    }
-
     /// Retourne le nombre de documents dans l'index
     pub fn num_documents(&self) -> u64 {
         if let Ok(reader) = self.index.reader() {
             let searcher = reader.searcher();
-            searcher.num_docs() as u64
+            searcher.num_docs()
         } else {
             0
         }

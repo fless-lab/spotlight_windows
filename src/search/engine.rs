@@ -158,6 +158,26 @@ impl SearchEngine {
         Ok(results)
     }
 
+    /// Calcule le score final pour un résultat de recherche
+    #[cfg(test)]
+    pub fn calculate_score(result: &SearchResult, fuzzy_score: f32) -> f32 {
+        // Bonus pour les dossiers
+        let directory_bonus = if result.is_directory { 10.0 } else { 0.0 };
+
+        // Bonus pour les fichiers récents
+        let now = chrono::Utc::now().timestamp();
+        let age_days = (now - result.modified) / 86400;
+        let recency_bonus = if age_days < 7 {
+            20.0
+        } else if age_days < 30 {
+            10.0
+        } else {
+            0.0
+        };
+
+        fuzzy_score + directory_bonus + recency_bonus
+    }
+
     /// Applique le fuzzy matching pour améliorer le scoring
     fn apply_fuzzy_scoring(&self, query: &str, mut results: Vec<SearchResult>) -> Vec<SearchResult> {
         for result in &mut results {
@@ -197,5 +217,159 @@ impl SearchEngine {
         results.retain(|r| r.score >= self.config.search.min_fuzzy_score as f32);
 
         results
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    /// Test du calcul de score avec bonus de récence
+    #[test]
+    fn test_calculate_score_with_recency_bonus() {
+        let result = SearchResult {
+            path: PathBuf::from("/test/file.txt"),
+            name: "file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 1024,
+            modified: chrono::Utc::now().timestamp(),
+            is_directory: false,
+            score: 0.0,
+        };
+
+        let score = SearchEngine::calculate_score(&result, 80.0);
+
+        // Score de base 80 + bonus de récence 20 (fichier modifié aujourd'hui)
+        assert_eq!(score, 100.0);
+    }
+
+    /// Test du bonus de répertoire
+    #[test]
+    fn test_directory_bonus() {
+        let result = SearchResult {
+            path: PathBuf::from("/test/folder"),
+            name: "folder".to_string(),
+            extension: None,
+            size: 0,
+            modified: chrono::Utc::now().timestamp() - (30 * 24 * 3600), // 30 jours
+            is_directory: true,
+            score: 0.0,
+        };
+
+        let score = SearchEngine::calculate_score(&result, 50.0);
+
+        // Score de base 50 + bonus répertoire 10 = 60 (pas de bonus récence après 30 jours)
+        assert_eq!(score, 60.0);
+    }
+
+    /// Test du bonus de récence pour fichiers de 7-30 jours
+    #[test]
+    fn test_medium_recency_bonus() {
+        let result = SearchResult {
+            path: PathBuf::from("/test/file.txt"),
+            name: "file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 1024,
+            modified: chrono::Utc::now().timestamp() - (14 * 24 * 3600), // 14 jours
+            is_directory: false,
+            score: 0.0,
+        };
+
+        let score = SearchEngine::calculate_score(&result, 70.0);
+
+        // Score de base 70 + bonus récence 10 (8-30 jours)
+        assert_eq!(score, 80.0);
+    }
+
+    /// Test sans bonus de récence pour fichiers anciens
+    #[test]
+    fn test_no_recency_bonus_old_files() {
+        let result = SearchResult {
+            path: PathBuf::from("/test/old_file.txt"),
+            name: "old_file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 1024,
+            modified: chrono::Utc::now().timestamp() - (90 * 24 * 3600), // 90 jours
+            is_directory: false,
+            score: 0.0,
+        };
+
+        let score = SearchEngine::calculate_score(&result, 65.0);
+
+        // Score de base 65 (pas de bonus)
+        assert_eq!(score, 65.0);
+    }
+
+    /// Test du formatage de la taille
+    #[test]
+    fn test_formatted_size() {
+        let result_bytes = SearchResult {
+            path: PathBuf::from("/test/file.txt"),
+            name: "file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 512,
+            modified: 0,
+            is_directory: false,
+            score: 0.0,
+        };
+        assert_eq!(result_bytes.formatted_size(), "512 B");
+
+        let result_kb = SearchResult {
+            path: PathBuf::from("/test/file.txt"),
+            name: "file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 2048,
+            modified: 0,
+            is_directory: false,
+            score: 0.0,
+        };
+        assert_eq!(result_kb.formatted_size(), "2.00 KB");
+
+        let result_mb = SearchResult {
+            path: PathBuf::from("/test/file.txt"),
+            name: "file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 5_242_880, // 5 MB
+            modified: 0,
+            is_directory: false,
+            score: 0.0,
+        };
+        assert_eq!(result_mb.formatted_size(), "5.00 MB");
+
+        let result_gb = SearchResult {
+            path: PathBuf::from("/test/file.txt"),
+            name: "file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 2_147_483_648, // 2 GB
+            modified: 0,
+            is_directory: false,
+            score: 0.0,
+        };
+        assert_eq!(result_gb.formatted_size(), "2.00 GB");
+    }
+
+    /// Test du formatage de la date
+    #[test]
+    fn test_formatted_modified() {
+        let now = chrono::Utc::now();
+        let timestamp = now.timestamp();
+
+        let result = SearchResult {
+            path: PathBuf::from("/test/file.txt"),
+            name: "file.txt".to_string(),
+            extension: Some("txt".to_string()),
+            size: 1024,
+            modified: timestamp,
+            is_directory: false,
+            score: 0.0,
+        };
+
+        let formatted = result.formatted_modified();
+
+        // Vérifier que la date est au format attendu (YYYY-MM-DD HH:MM)
+        assert!(formatted.len() >= 16); // Au moins "YYYY-MM-DD HH:MM"
+        assert!(formatted.contains('-'));
+        assert!(formatted.contains(':'));
     }
 }

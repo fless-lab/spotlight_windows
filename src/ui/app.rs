@@ -131,7 +131,7 @@ impl eframe::App for SpotlightApp {
         }
 
         // Setup du thème une seule fois
-        if ctx.style().text_styles.get(&TextStyle::Heading).is_none()
+        if !ctx.style().text_styles.contains_key(&TextStyle::Heading)
             || ctx.style().text_styles[&TextStyle::Heading].size != 24.0
         {
             setup_custom_theme(ctx);
@@ -174,10 +174,10 @@ impl eframe::App for SpotlightApp {
                     self.toggle_window();
                 }
 
-                if ctx.input(|i| i.key_pressed(Key::ArrowDown)) {
-                    if self.selected_index < self.results.len().saturating_sub(1) {
-                        self.selected_index += 1;
-                    }
+                if ctx.input(|i| i.key_pressed(Key::ArrowDown))
+                    && self.selected_index < self.results.len().saturating_sub(1)
+                {
+                    self.selected_index += 1;
                 }
 
                 if ctx.input(|i| i.key_pressed(Key::ArrowUp)) {
@@ -276,7 +276,7 @@ impl eframe::App for SpotlightApp {
                                     // Métadonnées
                                     ui.horizontal(|ui| {
                                         ui.label(
-                                            egui::RichText::new(&result.formatted_size())
+                                            egui::RichText::new(result.formatted_size())
                                                 .size(11.0)
                                                 .color(Color32::from_rgb(120, 120, 120)),
                                         );
@@ -286,7 +286,7 @@ impl eframe::App for SpotlightApp {
                                                 .color(Color32::from_rgb(120, 120, 120)),
                                         );
                                         ui.label(
-                                            egui::RichText::new(&result.formatted_modified())
+                                            egui::RichText::new(result.formatted_modified())
                                                 .size(11.0)
                                                 .color(Color32::from_rgb(120, 120, 120)),
                                         );

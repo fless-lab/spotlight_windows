@@ -207,13 +207,22 @@ impl Scanner {
         })
     }
 
-    /// Extrait le texte d'un PDF
+    /// Extrait le texte d'un PDF avec protection contre les panics
     fn extract_pdf_content(path: &std::path::Path) -> Option<String> {
         use pdf_extract::extract_text;
+        use std::panic::{catch_unwind, AssertUnwindSafe};
 
-        match extract_text(path) {
-            Ok(text) => {
-                // Limiter à 50,000 caractères
+        // Cloner le chemin pour éviter les problèmes de borrow dans catch_unwind
+        let path_buf = path.to_path_buf();
+
+        // Catch les panics qui peuvent survenir dans pdf-extract (notamment FromUtf16Error)
+        let result = catch_unwind(AssertUnwindSafe(move || {
+            extract_text(&path_buf)
+        }));
+
+        match result {
+            Ok(Ok(text)) => {
+                // Extraction réussie
                 let trimmed = if text.len() > 50_000 {
                     text.chars().take(50_000).collect()
                 } else {
@@ -221,10 +230,179 @@ impl Scanner {
                 };
                 Some(trimmed)
             }
-            Err(e) => {
+            Ok(Err(e)) => {
+                // Erreur normale de pdf-extract
                 warn!("Impossible d'extraire le PDF {:?}: {}", path, e);
                 None
             }
+            Err(_) => {
+                // Panic attrapé (souvent FromUtf16Error dans les PDF malformés)
+                warn!("Panic lors de l'extraction du PDF {:?} (encodage invalide ou PDF corrompu)", path);
+                None
+            }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    /// Test de l'exclusion de chemins
+    #[test]
+    fn test_should_exclude() {
+        let exclude_patterns = vec![
+            "node_modules".to_string(),
+            ".git".to_string(),
+            "target".to_string(),
+        ];
+
+        // Chemins qui devraient être exclus
+        assert!(Scanner::should_exclude(
+            &PathBuf::from("/project/node_modules/package"),
+            &exclude_patterns
+        ));
+        assert!(Scanner::should_exclude(
+            &PathBuf::from("/project/.git/config"),
+            &exclude_patterns
+        ));
+        assert!(Scanner::should_exclude(
+            &PathBuf::from("/project/target/debug"),
+            &exclude_patterns
+        ));
+
+        // Chemins qui ne devraient pas être exclus
+        assert!(!Scanner::should_exclude(
+            &PathBuf::from("/project/src/main.rs"),
+            &exclude_patterns
+        ));
+        assert!(!Scanner::should_exclude(
+            &PathBuf::from("/project/README.md"),
+            &exclude_patterns
+        ));
+    }
+
+    /// Test de l'extraction de contenu pour fichiers texte
+    #[test]
+    fn test_extract_content_text_file() {
+        // Créer un fichier temporaire pour le test
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_extract.txt");
+        std::fs::write(&test_file, "Hello, World!").unwrap();
+
+        let extension = Some("txt".to_string());
+        let size = 13; // taille de "Hello, World!"
+
+        let content = Scanner::extract_content(&test_file, &extension, size);
+
+        assert!(content.is_some());
+        assert_eq!(content.unwrap(), "Hello, World!");
+
+        // Nettoyer
+        let _ = std::fs::remove_file(&test_file);
+    }
+
+    /// Test de l'extraction avec fichier trop volumineux
+    #[test]
+    fn test_extract_content_file_too_large() {
+        let extension = Some("txt".to_string());
+        let size = 15 * 1024 * 1024; // 15 MB (> MAX_CONTENT_SIZE)
+
+        let content = Scanner::extract_content(
+            &PathBuf::from("/nonexistent/huge_file.txt"),
+            &extension,
+            size
+        );
+
+        // Le contenu ne devrait pas être extrait pour les fichiers trop volumineux
+        assert!(content.is_none());
+    }
+
+    /// Test de l'extraction pour extensions non supportées
+    #[test]
+    fn test_extract_content_unsupported_extension() {
+        let extension = Some("exe".to_string());
+        let size = 1024;
+
+        let content = Scanner::extract_content(
+            &PathBuf::from("/test/program.exe"),
+            &extension,
+            size
+        );
+
+        // Les fichiers binaires ne devraient pas être extraits
+        assert!(content.is_none());
+    }
+
+    /// Test de la limitation de caractères
+    #[test]
+    fn test_extract_content_character_limit() {
+        // Créer un fichier avec plus de 50,000 caractères
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_large.txt");
+        let large_content: String = "a".repeat(60_000);
+        std::fs::write(&test_file, &large_content).unwrap();
+
+        let extension = Some("txt".to_string());
+        let size = large_content.len() as u64;
+
+        let content = Scanner::extract_content(&test_file, &extension, size);
+
+        assert!(content.is_some());
+        let extracted = content.unwrap();
+
+        // Le contenu devrait être limité à 50,000 caractères
+        assert_eq!(extracted.len(), 50_000);
+
+        // Nettoyer
+        let _ = std::fs::remove_file(&test_file);
+    }
+
+    /// Test des extensions de fichiers texte supportées
+    #[test]
+    fn test_supported_text_extensions() {
+        let supported_extensions = vec![
+            "txt", "md", "rs", "toml", "json", "xml", "yaml", "yml",
+            "js", "ts", "py", "go", "c", "cpp", "h", "hpp",
+            "java", "cs", "rb", "php", "html", "css", "scss",
+            "sh", "bash", "ps1", "bat", "cmd", "log", "ini", "cfg",
+            "csv", "sql", "vue", "jsx", "tsx", "swift", "kt", "dart"
+        ];
+
+        let temp_dir = std::env::temp_dir();
+
+        for ext in supported_extensions {
+            let test_file = temp_dir.join(format!("test.{}", ext));
+            std::fs::write(&test_file, "test content").unwrap();
+
+            let extension = Some(ext.to_string());
+            let content = Scanner::extract_content(&test_file, &extension, 100);
+
+            assert!(
+                content.is_some(),
+                "Extension {} should be supported",
+                ext
+            );
+
+            let _ = std::fs::remove_file(&test_file);
+        }
+    }
+
+    /// Test du traitement des PDF (graceful failure)
+    #[test]
+    fn test_pdf_extraction_graceful_failure() {
+        // Créer un faux PDF (fichier invalide)
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_invalid.pdf");
+        std::fs::write(&test_file, "This is not a valid PDF").unwrap();
+
+        let content = Scanner::extract_pdf_content(&test_file);
+
+        // La fonction devrait retourner None sans crasher
+        assert!(content.is_none());
+
+        // Nettoyer
+        let _ = std::fs::remove_file(&test_file);
     }
 }

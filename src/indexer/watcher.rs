@@ -2,7 +2,7 @@ use super::{FileEntry, Indexer};
 use crate::config::Config;
 use anyhow::Result;
 use notify::{Config as NotifyConfig, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 use tokio::sync::mpsc;
@@ -100,7 +100,7 @@ impl FileWatcher {
     }
 
     /// Vérifie si un chemin doit être exclu
-    fn should_exclude(path: &PathBuf, exclude_patterns: &[String]) -> bool {
+    fn should_exclude(path: &Path, exclude_patterns: &[String]) -> bool {
         let path_str = path.to_string_lossy();
 
         for pattern in exclude_patterns {
@@ -113,7 +113,7 @@ impl FileWatcher {
     }
 
     /// Crée une FileEntry à partir des métadonnées
-    fn create_file_entry(path: &PathBuf, metadata: &std::fs::Metadata) -> Option<FileEntry> {
+    fn create_file_entry(path: &Path, metadata: &std::fs::Metadata) -> Option<FileEntry> {
         let name = path.file_name()?.to_string_lossy().to_string();
 
         let extension = if !metadata.is_dir() {
@@ -150,7 +150,7 @@ impl FileWatcher {
     }
 
     /// Extrait le contenu d'un fichier texte
-    fn extract_content(path: &PathBuf, extension: &Option<String>, size: u64) -> Option<String> {
+    fn extract_content(path: &Path, extension: &Option<String>, size: u64) -> Option<String> {
         // Limite de taille: 1 MB
         const MAX_CONTENT_SIZE: u64 = 1024 * 1024;
 
