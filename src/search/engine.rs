@@ -89,25 +89,15 @@ impl SearchEngine {
         let path_field = schema.get_field("path").unwrap();
         let content_field = schema.get_field("content").unwrap();
 
-        let mut query_parser = QueryParser::for_index(
+        // Recherche simple et efficace - priorité au nom de fichier
+        let query_parser = QueryParser::for_index(
             index,
             vec![name_field, path_field, content_field]
         );
 
-        // Tokenizer plus permissif pour les recherches courtes
-        query_parser.set_conjunction_by_default();
-
-        // Parser la query avec wildcards pour matching partiel
-        // Support pour les queries courtes (1+ caractères)
-        let query_str = if query.len() <= 2 {
-            // Pour 1-2 caractères, recherche avec wildcard au début et à la fin
-            format!("*{}*", query.to_lowercase())
-        } else {
-            // Pour 3+ caractères, wildcard à la fin seulement
-            format!("{}*", query.to_lowercase())
-        };
-
-        let tantivy_query = query_parser.parse_query(&query_str)?;
+        // Recherche simple: juste le texte tel quel
+        // Tantivy va tokenizer et trouver les correspondances
+        let tantivy_query = query_parser.parse_query(query)?;
 
         // Rechercher
         let top_docs = searcher.search(&tantivy_query, &TopDocs::with_limit(limit * 2))?;

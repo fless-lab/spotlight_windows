@@ -70,30 +70,56 @@ impl Default for Config {
 
         Self {
             indexer: IndexerConfig {
-                include_paths: vec![
-                    home.join("Documents"),
-                    home.join("Desktop"),
-                    home.join("Downloads"),
-                    home.join("Pictures"),
-                    home.join("Videos"),
-                    home.join("Music"),
-                    home.join("OneDrive"),
-                    // Scanner aussi les dossiers communs
-                    PathBuf::from("C:\\Program Files"),
-                    PathBuf::from("C:\\Program Files (x86)"),
-                ],
+                // Scanner TOUT l'utilisateur + Program Files + disques supplémentaires
+                include_paths: {
+                    let mut paths = vec![
+                        // Tout le profil utilisateur
+                        home.clone(),
+                        // Program Files
+                        PathBuf::from("C:\\Program Files"),
+                        PathBuf::from("C:\\Program Files (x86)"),
+                    ];
+
+                    // Ajouter D:\ E:\ F:\ si ils existent
+                    for drive in &["D:\\", "E:\\", "F:\\"] {
+                        let drive_path = PathBuf::from(drive);
+                        if drive_path.exists() {
+                            paths.push(drive_path);
+                        }
+                    }
+
+                    paths
+                },
+                // Exclure SEULEMENT les dossiers vraiment inutiles
                 exclude_paths: vec![
+                    // Dossiers Windows système
+                    "C:\\Windows".to_string(),
+                    "C:\\ProgramData".to_string(),
+                    "$RECYCLE.BIN".to_string(),
+                    "System Volume Information".to_string(),
+
+                    // Dossiers utilisateur temporaires/cache
+                    "AppData\\Local\\Temp".to_string(),
+                    "AppData\\LocalLow".to_string(),
+                    "Temp".to_string(),
+                    "cache".to_string(),
+                    ".cache".to_string(),
+
+                    // Dossiers de développement volumineux
                     "node_modules".to_string(),
                     ".git".to_string(),
                     "target".to_string(),
-                    "$RECYCLE.BIN".to_string(),
-                    "AppData".to_string(), // Tout AppData
-                    ".vscode".to_string(),
-                    ".idea".to_string(),
                     "__pycache__".to_string(),
+                    "venv".to_string(),
+                    ".venv".to_string(),
                     "build".to_string(),
                     "dist".to_string(),
-                    ".cache".to_string(),
+                    ".next".to_string(),
+
+                    // Dossiers IDE
+                    ".vscode".to_string(),
+                    ".idea".to_string(),
+                    ".vs".to_string(),
                 ],
                 file_extensions: vec![],
                 num_threads: num_cpus::get().min(8), // Utiliser jusqu'à 8 threads

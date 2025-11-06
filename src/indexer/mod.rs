@@ -37,16 +37,33 @@ impl Indexer {
     pub fn new(config: Arc<Config>) -> Result<Self> {
         let mut schema_builder = Schema::builder();
 
+        // Options de tokenization pour recherche de sous-chaînes
+        let text_options = TextOptions::default()
+            .set_indexing_options(
+                TextFieldIndexing::default()
+                    .set_tokenizer("ngram3") // On va créer ce tokenizer
+                    .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions)
+            )
+            .set_stored();
+
+        let text_options_basic = TextOptions::default()
+            .set_indexing_options(
+                TextFieldIndexing::default()
+                    .set_tokenizer("default")
+                    .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions)
+            )
+            .set_stored();
+
         // Définition du schéma Tantivy
-        schema_builder.add_text_field("path", TEXT | STORED);
-        schema_builder.add_text_field("name", TEXT | STORED);
+        schema_builder.add_text_field("path", text_options.clone());
+        schema_builder.add_text_field("name", text_options.clone());
         schema_builder.add_text_field("extension", STRING | STORED);
         schema_builder.add_u64_field("size", INDEXED | STORED);
         schema_builder.add_date_field("modified", INDEXED | STORED);
         schema_builder.add_bool_field("is_directory", INDEXED | STORED);
 
         // NOUVEAU: Champ pour le contenu des fichiers (recherche full-text)
-        schema_builder.add_text_field("content", TEXT);
+        schema_builder.add_text_field("content", text_options_basic);
 
         let schema = schema_builder.build();
 
@@ -57,8 +74,18 @@ impl Indexer {
         let index = Index::create_in_dir(&index_path, schema.clone())
             .or_else(|_| Index::open_in_dir(&index_path))?;
 
-        // Writer avec 50MB de heap
-        let writer = index.writer(50_000_000)?;
+        // Enregistrer le tokenizer NGram pour recherche de sous-chaînes
+        use tantivy::tokenizer::*;
+
+        index.tokenizers().register(
+            "ngram3",
+            TextAnalyzer::builder(NgramTokenizer::new(2, 4, false).unwrap())
+                .filter(LowerCaser)
+                .build(),
+        );
+
+        // Writer avec 100MB de heap (augmenté pour PDF)
+        let writer = index.writer(100_000_000)?;
 
         info!("Index créé avec succès: {:?}", index_path);
 
@@ -146,5 +173,25 @@ impl Indexer {
     /// Retourne le schéma
     pub fn get_schema(&self) -> &Schema {
         &self.schema
+    }
+
+    /// Vérifie si l'index contient des documents
+    pub fn has_documents(&self) -> bool {
+        if let Ok(reader) = self.index.reader() {
+            let searcher = reader.searcher();
+            searcher.num_docs() > 0
+        } else {
+            false
+        }
+    }
+
+    /// Retourne le nombre de documents dans l'index
+    pub fn num_documents(&self) -> u64 {
+        if let Ok(reader) = self.index.reader() {
+            let searcher = reader.searcher();
+            searcher.num_docs() as u64
+        } else {
+            0
+        }
     }
 }

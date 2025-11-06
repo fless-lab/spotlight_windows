@@ -1,6 +1,6 @@
 [package]
 name = "spotlight_windows"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2021"
 authors = ["Spotlight Windows Team"]
 
@@ -52,6 +52,9 @@ chrono = "0.4"
 fuzzy-matcher = "0.3"
 num_cpus = "1.16"
 dirs = "5.0"
+
+# PDF extraction
+pdf-extract = "0.7"
 
 [profile.release]
 opt-level = 3

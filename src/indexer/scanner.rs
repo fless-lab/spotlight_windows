@@ -166,13 +166,20 @@ impl Scanner {
         })
     }
 
-    /// Extrait le contenu d'un fichier texte
+    /// Extrait le contenu d'un fichier texte ou PDF
     fn extract_content(path: &std::path::Path, extension: &Option<String>, size: u64) -> Option<String> {
-        // Limite de taille: 1 MB pour éviter de charger de gros fichiers
-        const MAX_CONTENT_SIZE: u64 = 1024 * 1024;
+        // Limite de taille: 10 MB (augmentée pour les PDF)
+        const MAX_CONTENT_SIZE: u64 = 10 * 1024 * 1024;
 
         if size > MAX_CONTENT_SIZE {
             return None;
+        }
+
+        let ext_lower = extension.as_ref()?.to_lowercase();
+
+        // PDF: Extraction spéciale
+        if ext_lower == "pdf" {
+            return Self::extract_pdf_content(path);
         }
 
         // Extensions de fichiers texte à indexer
@@ -180,27 +187,44 @@ impl Scanner {
             "txt", "md", "rs", "toml", "json", "xml", "yaml", "yml",
             "js", "ts", "py", "go", "c", "cpp", "h", "hpp",
             "java", "cs", "rb", "php", "html", "css", "scss",
-            "sh", "bash", "ps1", "bat", "cmd", "log", "ini", "cfg"
+            "sh", "bash", "ps1", "bat", "cmd", "log", "ini", "cfg",
+            "csv", "sql", "vue", "jsx", "tsx", "swift", "kt", "dart"
         ];
 
         // Vérifier si c'est un fichier texte
-        let is_text = extension
-            .as_ref()
-            .map(|ext| TEXT_EXTENSIONS.contains(&ext.to_lowercase().as_str()))
-            .unwrap_or(false);
-
-        if !is_text {
+        if !TEXT_EXTENSIONS.contains(&ext_lower.as_str()) {
             return None;
         }
 
-        // Lire le contenu
+        // Lire le contenu texte
         std::fs::read_to_string(path).ok().map(|content| {
-            // Limiter à 10,000 caractères
-            if content.len() > 10_000 {
-                content.chars().take(10_000).collect()
+            // Limiter à 50,000 caractères (augmenté)
+            if content.len() > 50_000 {
+                content.chars().take(50_000).collect()
             } else {
                 content
             }
         })
+    }
+
+    /// Extrait le texte d'un PDF
+    fn extract_pdf_content(path: &std::path::Path) -> Option<String> {
+        use pdf_extract::extract_text;
+
+        match extract_text(path) {
+            Ok(text) => {
+                // Limiter à 50,000 caractères
+                let trimmed = if text.len() > 50_000 {
+                    text.chars().take(50_000).collect()
+                } else {
+                    text
+                };
+                Some(trimmed)
+            }
+            Err(e) => {
+                warn!("Impossible d'extraire le PDF {:?}: {}", path, e);
+                None
+            }
+        }
     }
 }

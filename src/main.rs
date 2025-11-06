@@ -40,29 +40,49 @@ async fn main() -> Result<()> {
     let indexer = Arc::new(Indexer::new(config.clone())?);
     info!("Indexeur créé");
 
-    // Scanner initial des fichiers
-    let scanner = Scanner::new(config.clone(), indexer.clone());
-    info!("Lancement du scan initial...");
+    // Vérifier si l'index contient déjà des documents
+    let num_docs = indexer.num_documents();
+    if num_docs > 0 {
+        info!("✅ Index existant trouvé avec {} documents", num_docs);
+        info!("⏭️  Scan initial ignoré (index déjà peuplé)");
 
-    let scanner_clone = scanner;
-    let indexer_clone = indexer.clone();
-    let config_clone = config.clone();
-
-    tokio::spawn(async move {
-        if let Err(e) = scanner_clone.initial_scan().await {
-            error!("Erreur lors du scan initial: {}", e);
-        } else {
-            info!("✅ Scan initial terminé avec succès");
-
-            // Démarrer le file watcher après le scan initial
-            let watcher = FileWatcher::new(config_clone.clone(), indexer_clone);
+        // Démarrer directement le file watcher
+        let indexer_clone = indexer.clone();
+        let config_clone = config.clone();
+        tokio::spawn(async move {
+            let watcher = FileWatcher::new(config_clone, indexer_clone);
             if let Err(e) = watcher.start().await {
                 error!("Erreur lors du démarrage du file watcher: {}", e);
             } else {
                 info!("✅ File watcher démarré");
             }
-        }
-    });
+        });
+    } else {
+        info!("📊 Index vide - Lancement du scan initial...");
+
+        // Scanner initial des fichiers
+        let scanner = Scanner::new(config.clone(), indexer.clone());
+
+        let scanner_clone = scanner;
+        let indexer_clone = indexer.clone();
+        let config_clone = config.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = scanner_clone.initial_scan().await {
+                error!("Erreur lors du scan initial: {}", e);
+            } else {
+                info!("✅ Scan initial terminé avec succès");
+
+                // Démarrer le file watcher après le scan initial
+                let watcher = FileWatcher::new(config_clone.clone(), indexer_clone);
+                if let Err(e) = watcher.start().await {
+                    error!("Erreur lors du démarrage du file watcher: {}", e);
+                } else {
+                    info!("✅ File watcher démarré");
+                }
+            }
+        });
+    }
 
     // Créer le moteur de recherche
     let search_engine = Arc::new(SearchEngine::new(indexer.clone(), config.clone()));

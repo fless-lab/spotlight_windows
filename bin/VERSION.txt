@@ -1,19 +1,56 @@
-Spotlight Windows - Version 0.2.3 (Major Improvements)
+Spotlight Windows - Version 0.3.0 (REVOLUTIONARY UPDATE)
 
 ## Binaires Inclus
 
 1. spotlight_windows.exe (Windows x86_64)
-   - Taille: 11 MB
+   - Taille: 12 MB
    - Target: x86_64-pc-windows-gnu
    - Build: Release (optimisé)
    - Note: Hotkey global désactivé (compile nativement sur Windows pour l'activer)
 
 2. spotlight_windows (Linux x86_64)
-   - Taille: 16 MB
+   - Taille: 17 MB
    - Target: x86_64-unknown-linux-gnu
    - Build: Release (optimisé LTO)
 
-## Improvements in 0.2.3 (LATEST)
+## 🚀 Revolutionary Changes in 0.3.0 (LATEST)
+
+**GAME CHANGER: Persistent Index**
+- Index is now saved and reused across app restarts
+- NO MORE full reindexing on every launch!
+- Launches instantly with existing index
+- Only new/modified files are indexed
+
+**PDF SUPPORT!**
+- Full PDF text extraction with pdf-extract crate
+- PDFs are now searchable by content
+- Supports up to 10MB PDF files
+- Extracts up to 50,000 characters per PDF
+
+**SUBSTRING SEARCH with N-Grams**
+- Search "doc" finds "documents", "my-docs", "docfile"
+- N-gram tokenizer (2-4 grams) for fuzzy partial matching
+- No more need to type complete filenames
+- Much more intuitive search experience
+
+**MASSIVE System Coverage**
+- Scans ENTIRE user home directory (not just 3 folders)
+- Indexes all drives: C:\, D:\, E:\, F:\ if they exist
+- Program Files and Program Files (x86)
+- Smart exclusions: Windows, Temp, cache, node_modules only
+
+**Enhanced Content Extraction**
+- 50,000 characters per file (was 10,000)
+- 10MB max file size (was 1MB)
+- 40+ file formats supported
+- Added: csv, sql, vue, jsx, tsx, swift, kt, dart
+
+**Performance**
+- 100MB writer heap (was 50MB)
+- Optimized for large document collections
+- Faster indexing with 8 threads
+
+## Improvements in 0.2.3
 
 **CRITIQUE: Fix file opening crash**
 - Use cmd /c start instead of explorer.exe for proper file associations
