@@ -71,8 +71,15 @@ impl Indexer {
         let index_path = Self::index_path();
         std::fs::create_dir_all(&index_path)?;
 
-        let index = Index::create_in_dir(&index_path, schema.clone())
-            .or_else(|_| Index::open_in_dir(&index_path))?;
+        // IMPORTANT : D'abord essayer d'OUVRIR l'index existant
+        // Si ça échoue, alors créer un nouveau
+        let index = Index::open_in_dir(&index_path)
+            .or_else(|_| {
+                info!("Création d'un nouvel index...");
+                Index::create_in_dir(&index_path, schema.clone())
+            })?;
+
+        info!("Index chargé depuis: {:?}", index_path);
 
         // Enregistrer le tokenizer NGram pour recherche de sous-chaînes
         use tantivy::tokenizer::*;
