@@ -177,9 +177,10 @@ impl Scanner {
 
         let ext_lower = extension.as_ref()?.to_lowercase();
 
-        // PDF: Extraction spéciale
+        // PDF: DÉSACTIVÉ temporairement (cause des crashes avec glyphs non-ASCII)
+        // TODO: Fix pdf-extract glyph warnings
         if ext_lower == "pdf" {
-            return Self::extract_pdf_content(path);
+            return None; // Skip PDF extraction for now
         }
 
         // Extensions de fichiers texte à indexer
