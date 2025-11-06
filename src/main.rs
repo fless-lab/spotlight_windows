@@ -1,21 +1,28 @@
 mod config;
 mod indexer;
 mod search;
+mod tray;
 mod ui;
-
-// Hotkey désactivé pour cross-compile
-// Compiler nativement sur Windows pour l'activer
-// #[cfg(windows)]
-// mod hotkey;
 
 use anyhow::Result;
 use config::Config;
+use global_hotkey::{hotkey::{HotKey, Code, Modifiers}, GlobalHotKeyManager, GlobalHotKeyEvent};
 use indexer::{scanner::Scanner, watcher::FileWatcher, Indexer};
 use search::SearchEngine;
-use std::sync::Arc;
+use std::sync::{Arc, mpsc::{channel, Sender}};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
+use tray::SystemTray;
 use ui::SpotlightPalette;
+
+/// Events pour contrôler la visibilité de la fenêtre
+#[derive(Debug, Clone)]
+pub enum WindowEvent {
+    Show,
+    Hide,
+    Toggle,
+    Quit,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -88,8 +95,59 @@ async fn main() -> Result<()> {
     let search_engine = Arc::new(SearchEngine::new(indexer.clone(), config.clone()));
     info!("Moteur de recherche créé");
 
+    // Créer le canal pour les événements de fenêtre
+    let (window_event_tx, window_event_rx) = channel::<WindowEvent>();
+
+    // Initialiser le system tray
+    let system_tray = match SystemTray::new() {
+        Ok(tray) => {
+            info!("✅ System tray initialisé");
+            Some(tray)
+        }
+        Err(e) => {
+            error!("⚠️  Erreur lors de l'initialisation du system tray: {}", e);
+            None
+        }
+    };
+
+    // Initialiser le hotkey manager (Ctrl+Space)
+    let hotkey_manager = GlobalHotKeyManager::new().ok();
+    let hotkey_id = if let Some(ref manager) = hotkey_manager {
+        let hotkey = HotKey::new(Some(Modifiers::CONTROL), Code::Space);
+        match manager.register(hotkey) {
+            Ok(_) => {
+                info!("✅ Hotkey Ctrl+Space enregistré");
+                Some(hotkey.id())
+            }
+            Err(e) => {
+                error!("⚠️  Erreur lors de l'enregistrement du hotkey: {}", e);
+                None
+            }
+        }
+    } else {
+        error!("⚠️  Impossible d'initialiser le hotkey manager");
+        None
+    };
+
+    // Thread pour écouter uniquement les événements du hotkey
+    let window_event_tx_clone = window_event_tx.clone();
+    std::thread::spawn(move || {
+        loop {
+            // Vérifier les événements du hotkey
+            if let Some(expected_id) = hotkey_id {
+                if let Ok(event) = GlobalHotKeyEvent::receiver().try_recv() {
+                    if event.id == expected_id {
+                        let _ = window_event_tx_clone.send(WindowEvent::Toggle);
+                    }
+                }
+            }
+
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    });
+
     // Créer l'application UI Spotlight
-    let app = SpotlightPalette::new(search_engine.clone());
+    let app = SpotlightPalette::new(search_engine.clone(), window_event_rx, system_tray, window_event_tx, indexer.clone());
 
     // Configuration de la fenêtre style Spotlight
     let native_options = eframe::NativeOptions {
@@ -99,6 +157,7 @@ async fn main() -> Result<()> {
             .with_transparent(true) // Transparent pour effet blur
             .with_resizable(false) // Taille fixe
             .with_always_on_top() // Toujours au-dessus
+            .with_visible(false) // Commence caché (Ctrl+Space pour afficher)
             .with_position([
                 (1920.0 - 720.0) / 2.0, // Centré horizontalement (ajuster selon résolution)
                 200.0, // 24% de la hauteur ~= 200px sur 1080p
@@ -106,12 +165,7 @@ async fn main() -> Result<()> {
         ..Default::default()
     };
 
-    info!("Lancement de l'interface utilisateur");
-
-    // Note: Le hotkey global nécessite une implémentation plus avancée
-    // pour interagir avec l'application eframe. Pour l'instant, l'application
-    // reste visible. Une future version pourrait utiliser un système de
-    // messages pour communiquer entre le thread du hotkey et l'UI.
+    info!("✅ Lancement de l'interface utilisateur (fenêtre cachée - Ctrl+Space pour afficher)");
 
     // Lancer l'application
     eframe::run_native(

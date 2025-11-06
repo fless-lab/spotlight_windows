@@ -1,4 +1,7 @@
+use crate::indexer::Indexer;
 use crate::search::{SearchEngine, SearchResult};
+use crate::tray::SystemTray;
+use crate::WindowEvent;
 use egui::{
     Align, Color32, FontId, Key, Layout, Margin, Rounding, ScrollArea, Sense, Shadow, Stroke,
     TextEdit, Vec2, Visuals,
@@ -13,15 +16,26 @@ use std::os::windows::process::CommandExt;
 pub struct SpotlightPalette {
     query_sender: Sender<String>,
     result_receiver: Receiver<Vec<SearchResult>>,
+    window_event_receiver: Receiver<WindowEvent>,
+    window_event_sender: Sender<WindowEvent>,
+    system_tray: Option<SystemTray>,
+    indexer: Arc<Indexer>,
     query: String,
     results: Vec<SearchResult>,
     selected_index: usize,
     is_searching: bool,
     is_visible: bool,
+    last_tooltip_update: std::time::Instant,
 }
 
 impl SpotlightPalette {
-    pub fn new(search_engine: Arc<SearchEngine>) -> Self {
+    pub fn new(
+        search_engine: Arc<SearchEngine>,
+        window_event_receiver: Receiver<WindowEvent>,
+        system_tray: Option<SystemTray>,
+        window_event_sender: Sender<WindowEvent>,
+        indexer: Arc<Indexer>,
+    ) -> Self {
         let (query_tx, query_rx) = channel::<String>();
         let (result_tx, result_rx) = channel::<Vec<SearchResult>>();
 
@@ -44,11 +58,16 @@ impl SpotlightPalette {
         Self {
             query_sender: query_tx,
             result_receiver: result_rx,
+            window_event_receiver,
+            window_event_sender,
+            system_tray,
+            indexer,
             query: String::new(),
             results: Vec::new(),
             selected_index: 0,
             is_searching: false,
-            is_visible: true, // Commence visible pour test
+            is_visible: false, // Commence caché (Ctrl+Space pour afficher)
+            last_tooltip_update: std::time::Instant::now(),
         }
     }
 
@@ -62,7 +81,7 @@ impl SpotlightPalette {
         self.is_searching = true;
     }
 
-    fn open_selected(&mut self) {
+    fn open_selected(&mut self, ctx: &egui::Context) {
         if let Some(result) = self.results.get(self.selected_index) {
             #[cfg(target_os = "windows")]
             {
@@ -72,6 +91,7 @@ impl SpotlightPalette {
                     .spawn();
             }
             self.is_visible = false;
+            ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
             self.query.clear();
             self.results.clear();
         }
@@ -101,7 +121,57 @@ impl SpotlightPalette {
 }
 
 impl eframe::App for SpotlightPalette {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Mettre à jour le tooltip du tray toutes les 2 secondes
+        if self.last_tooltip_update.elapsed().as_secs() >= 2 {
+            if let Some(ref tray) = self.system_tray {
+                let num_docs = self.indexer.num_documents();
+                let tooltip = if num_docs > 0 {
+                    format!("Spotlight Windows - {} fichiers indexés", num_docs)
+                } else {
+                    "Spotlight Windows - Indexation en cours...".to_string()
+                };
+                tray.set_tooltip(&tooltip);
+            }
+            self.last_tooltip_update = std::time::Instant::now();
+        }
+
+        // Vérifier les événements du system tray
+        if let Some(ref tray) = self.system_tray {
+            if let Some(tray_event) = tray.try_recv_event() {
+                let event = match tray_event {
+                    crate::tray::TrayEvent::Show => WindowEvent::Show,
+                    crate::tray::TrayEvent::Quit => WindowEvent::Quit,
+                };
+                let _ = self.window_event_sender.send(event);
+            }
+        }
+
+        // Vérifier les événements de fenêtre (Ctrl+Space, tray icon)
+        while let Ok(event) = self.window_event_receiver.try_recv() {
+            match event {
+                WindowEvent::Show => {
+                    self.is_visible = true;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                }
+                WindowEvent::Hide => {
+                    self.is_visible = false;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
+                }
+                WindowEvent::Toggle => {
+                    self.is_visible = !self.is_visible;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(self.is_visible));
+                    if self.is_visible {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                    }
+                }
+                WindowEvent::Quit => {
+                    std::process::exit(0);
+                }
+            }
+        }
+
         // Recevoir les résultats
         if let Ok(results) = self.result_receiver.try_recv() {
             self.results = results;
@@ -157,7 +227,7 @@ impl eframe::App for SpotlightPalette {
                             let titlebar_rect = ui.allocate_space(Vec2::new(640.0, 20.0)).1;
                             if ui.interact(titlebar_rect, ui.id().with("titlebar"), Sense::drag()).dragged() {
                                 // Permet de déplacer la fenêtre
-                                if let Some(mut pos) = ctx.input(|i| i.pointer.interact_pos()) {
+                                if ctx.input(|i| i.pointer.interact_pos()).is_some() {
                                     ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
                                 }
                             }
@@ -305,7 +375,7 @@ impl eframe::App for SpotlightPalette {
                 // Traiter le clic après la boucle
                 if let Some(idx) = clicked_index {
                     self.selected_index = idx;
-                    self.open_selected();
+                    self.open_selected(ctx);
                 }
 
                 // Afficher message si aucun résultat
@@ -363,6 +433,7 @@ impl eframe::App for SpotlightPalette {
         ctx.input(|i| {
             if i.key_pressed(Key::Escape) {
                 self.is_visible = false;
+                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
                 self.query.clear();
                 self.results.clear();
             }
@@ -378,7 +449,7 @@ impl eframe::App for SpotlightPalette {
             }
 
             if i.key_pressed(Key::Enter) {
-                self.open_selected();
+                self.open_selected(ctx);
             }
         });
 

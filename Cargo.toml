@@ -34,7 +34,14 @@ windows = { version = "0.58", features = [
     "Win32_UI_Input_KeyboardAndMouse",
     "Win32_System_Threading",
     "Win32_Storage_FileSystem",
+    "Win32_UI_Shell",
 ] }
+
+# System tray icon
+tray-icon = "0.14"
+
+# Global hotkey
+global-hotkey = "0.5"
 
 # Serialization et config
 serde = { version = "1.0", features = ["derive"] }
@@ -55,6 +62,9 @@ dirs = "5.0"
 
 # PDF extraction
 pdf-extract = "0.7"
+
+# Image loading for tray icon
+image = "0.25"
 
 [profile.release]
 opt-level = 3
