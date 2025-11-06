@@ -1,3 +1,6 @@
+// Désactiver la console Windows pour un comportement d'application native
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod config;
 mod indexer;
 mod search;
@@ -13,7 +16,7 @@ use std::sync::{Arc, mpsc::{channel, Sender}};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 use tray::SystemTray;
-use ui::SpotlightPalette;
+use ui::SpotlightUI; // Nouvelle UI premium
 
 /// Events pour contrôler la visibilité de la fenêtre
 #[derive(Debug, Clone)]
@@ -146,8 +149,8 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Créer l'application UI Spotlight
-    let app = SpotlightPalette::new(search_engine.clone(), window_event_rx, system_tray, window_event_tx, indexer.clone());
+    // Créer l'application UI Spotlight Premium
+    let app = SpotlightUI::new(search_engine.clone(), window_event_rx, system_tray, window_event_tx, indexer.clone());
 
     // Configuration de la fenêtre style Spotlight
     let native_options = eframe::NativeOptions {

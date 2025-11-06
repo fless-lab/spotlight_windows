@@ -3,14 +3,34 @@ use crate::search::{SearchEngine, SearchResult};
 use crate::tray::SystemTray;
 use crate::WindowEvent;
 use egui::{
-    Align, Color32, FontId, Key, Layout, Margin, Rounding, ScrollArea, Sense, Shadow, Stroke,
-    TextEdit, Vec2, Visuals,
+    Align, Color32, FontId, Key, Layout, Margin, Pos2, Rect, Rounding, ScrollArea, Sense, Shadow,
+    Stroke, TextEdit, Vec2, Visuals,
 };
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
+use std::time::Instant;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+
+// === CONSTANTES DE DESIGN SPOTLIGHT ===
+const WINDOW_WIDTH: f32 = 720.0;
+const WINDOW_MAX_HEIGHT: f32 = 600.0;
+const SEARCH_BAR_HEIGHT: f32 = 64.0;
+const RESULT_ITEM_HEIGHT: f32 = 72.0;
+const ANIMATION_DURATION: f32 = 0.15; // 150ms comme Spotlight
+const BLUR_RADIUS: f32 = 40.0;
+
+// Couleurs Spotlight authentiques (helpers car from_rgba_unmultiplied n'est pas const)
+fn bg_color() -> Color32 { Color32::from_rgba_unmultiplied(28, 28, 30, 245) }
+fn bg_blur_color() -> Color32 { Color32::from_rgba_unmultiplied(22, 22, 24, 250) }
+const TEXT_PRIMARY: Color32 = Color32::WHITE;
+const TEXT_SECONDARY: Color32 = Color32::from_gray(152);
+const TEXT_TERTIARY: Color32 = Color32::from_gray(99);
+fn selection_bg() -> Color32 { Color32::from_rgba_unmultiplied(0, 122, 255, 35) }
+fn selection_border() -> Color32 { Color32::from_rgba_unmultiplied(0, 122, 255, 100) }
+fn separator_color() -> Color32 { Color32::from_rgba_unmultiplied(255, 255, 255, 8) }
+fn shadow_color() -> Color32 { Color32::from_rgba_unmultiplied(0, 0, 0, 120) }
 
 /// Palette Spotlight - Design moderne et épuré
 pub struct SpotlightPalette {
@@ -25,7 +45,13 @@ pub struct SpotlightPalette {
     selected_index: usize,
     is_searching: bool,
     is_visible: bool,
-    last_tooltip_update: std::time::Instant,
+    last_tooltip_update: Instant,
+    // Animation et état visuel
+    show_animation_start: Option<Instant>,
+    hide_animation_start: Option<Instant>,
+    last_frame_time: Instant,
+    scroll_offset: f32,
+    target_scroll_offset: f32,
 }
 
 impl SpotlightPalette {
@@ -55,6 +81,7 @@ impl SpotlightPalette {
             }
         });
 
+        let now = Instant::now();
         Self {
             query_sender: query_tx,
             result_receiver: result_rx,
@@ -67,7 +94,41 @@ impl SpotlightPalette {
             selected_index: 0,
             is_searching: false,
             is_visible: false, // Commence caché (Ctrl+Space pour afficher)
-            last_tooltip_update: std::time::Instant::now(),
+            last_tooltip_update: now,
+            show_animation_start: None,
+            hide_animation_start: None,
+            last_frame_time: now,
+            scroll_offset: 0.0,
+            target_scroll_offset: 0.0,
+        }
+    }
+
+    /// Calcule le facteur d'animation fade-in (0.0 = invisible, 1.0 = visible)
+    fn get_fade_factor(&self) -> f32 {
+        if let Some(start) = self.show_animation_start {
+            let elapsed = start.elapsed().as_secs_f32();
+            (elapsed / ANIMATION_DURATION).min(1.0)
+        } else if let Some(start) = self.hide_animation_start {
+            let elapsed = start.elapsed().as_secs_f32();
+            1.0 - (elapsed / ANIMATION_DURATION).min(1.0)
+        } else if self.is_visible {
+            1.0
+        } else {
+            0.0
+        }
+    }
+
+    /// Fonction d'easing pour animations fluides (ease-out quad)
+    fn ease_out_quad(t: f32) -> f32 {
+        1.0 - (1.0 - t) * (1.0 - t)
+    }
+
+    /// Fonction d'easing pour animations fluides (ease-in-out cubic)
+    fn ease_in_out_cubic(t: f32) -> f32 {
+        if t < 0.5 {
+            4.0 * t * t * t
+        } else {
+            1.0 - (-2.0 * t + 2.0).powi(3) / 2.0
         }
     }
 
@@ -188,10 +249,9 @@ impl eframe::App for SpotlightPalette {
         };
         ctx.set_style(style);
 
-        // Cacher si non visible
+        // Ne dessiner l'UI que si visible
         if !self.is_visible {
-            // Masquer la fenêtre mais garder le process actif
-            // TODO: Vraiment cacher avec hide() quand on aura le hotkey
+            // Ne rien dessiner - la fenêtre reste cachée proprement
             return;
         }
 
