@@ -15,7 +15,7 @@ use search::SearchEngine;
 use std::sync::Arc;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
-use ui::SpotlightApp;
+use ui::SpotlightPalette;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -88,17 +88,21 @@ async fn main() -> Result<()> {
     let search_engine = Arc::new(SearchEngine::new(indexer.clone(), config.clone()));
     info!("Moteur de recherche créé");
 
-    // Créer l'application UI
-    let app = SpotlightApp::new(search_engine.clone());
+    // Créer l'application UI Spotlight
+    let app = SpotlightPalette::new(search_engine.clone());
 
-    // Configuration de la fenêtre eframe
+    // Configuration de la fenêtre style Spotlight
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([config.ui.window_width, config.ui.window_height])
-            .with_decorations(true)
-            .with_transparent(false)
-            .with_resizable(true)
-            .with_always_on_top(),
+            .with_inner_size([720.0, 520.0]) // Taille Spotlight
+            .with_decorations(false) // Sans bordure Windows
+            .with_transparent(true) // Transparent pour effet blur
+            .with_resizable(false) // Taille fixe
+            .with_always_on_top() // Toujours au-dessus
+            .with_position([
+                (1920.0 - 720.0) / 2.0, // Centré horizontalement (ajuster selon résolution)
+                200.0, // 24% de la hauteur ~= 200px sur 1080p
+            ]),
         ..Default::default()
     };
 
