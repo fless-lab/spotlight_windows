@@ -110,8 +110,8 @@ impl SpotlightUI {
             results: Vec::new(),
             selected_index: 0,
             is_searching: false,
-            is_visible: false,
-            animation_progress: 0.0,
+            is_visible: true, // Démarre visible (Ctrl+Space nécessite compilation Windows native)
+            animation_progress: 1.0, // Déjà animé
             last_frame_time: now,
             last_tooltip_update: now,
             item_hover_indices: vec![],

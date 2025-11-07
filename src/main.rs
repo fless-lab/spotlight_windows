@@ -160,7 +160,7 @@ async fn main() -> Result<()> {
             .with_transparent(true) // Transparent pour effet blur
             .with_resizable(false) // Taille fixe
             .with_always_on_top() // Toujours au-dessus
-            .with_visible(false) // Commence caché (Ctrl+Space pour afficher)
+            .with_visible(true) // Visible au démarrage (Ctrl+Space nécessite compilation Windows native)
             .with_position([
                 (1920.0 - 720.0) / 2.0, // Centré horizontalement (ajuster selon résolution)
                 200.0, // 24% de la hauteur ~= 200px sur 1080p
@@ -168,7 +168,8 @@ async fn main() -> Result<()> {
         ..Default::default()
     };
 
-    info!("✅ Lancement de l'interface utilisateur (fenêtre cachée - Ctrl+Space pour afficher)");
+    info!("✅ Lancement de l'interface utilisateur");
+    info!("⚠️  NOTE: Ctrl+Space hotkey nécessite compilation native Windows (cross-compile non supporté)");
 
     // Lancer l'application
     eframe::run_native(

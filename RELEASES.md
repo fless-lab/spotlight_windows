@@ -151,14 +151,41 @@ cd spotlight_windows
 ## 🐛 Problèmes Connus
 
 ### v0.3.0
+
+#### **⚠️ Ctrl+Space Hotkey - Cross-Compile Limitation** (IMPORTANT)
+- **Problème** : Le hotkey global Ctrl+Space **ne fonctionne PAS** en cross-compile (Linux → Windows)
+- **Cause** : Les bibliothèques de hotkey global nécessitent une compilation native Windows
+- **Solution temporaire** : L'application démarre **visible** par défaut pour pouvoir être utilisée
+- **Solution définitive** : Compiler nativement sur Windows
+  ```powershell
+  # Sur Windows
+  cargo build --release
+  ```
+- **Impact** :
+  - ✅ Application utilisable normalement (fenêtre visible au démarrage)
+  - ❌ Pas de hotkey Ctrl+Space pour show/hide
+  - ✅ ESC pour fermer fonctionne
+  - ✅ Toutes autres fonctionnalités OK
+
+#### **Autres Problèmes**
 - **PDF** : Extraction de contenu désactivée (crash avec glyphs non-ASCII)
-- **Hotkey** : Peut ne pas fonctionner en cross-compile (compilation native Windows requise)
 - **Première indexation** : Peut prendre 2-5 minutes selon nombre de fichiers
 
 ### Workarounds :
+- **Hotkey** : Application démarre visible, utiliser normalement sans Ctrl+Space
 - **PDF** : Recherche par nom de fichier uniquement
-- **Hotkey** : Compiler nativement sur Windows pour fonctionnement complet
 - **Indexation** : Patienter, c'est normal au premier lancement
+
+### Pour Version Complète :
+Pour avoir **toutes les fonctionnalités** (y compris Ctrl+Space) :
+1. **Sur Windows**, compiler nativement :
+   ```powershell
+   git clone https://github.com/fless-lab/spotlight_windows.git
+   cd spotlight_windows
+   cargo build --release
+   ```
+2. L'exécutable sera dans `target\release\spotlight_windows.exe`
+3. Toutes les fonctionnalités fonctionneront (hotkey, tray, auto-start)
 
 ---
 
