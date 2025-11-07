@@ -157,7 +157,6 @@ async fn main() -> Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([720.0, 520.0]) // Taille Spotlight
             .with_decorations(false) // Sans bordure Windows
-            .with_transparent(true) // Transparent pour effet blur
             .with_resizable(false) // Taille fixe
             .with_always_on_top() // Toujours au-dessus
             .with_visible(true) // Visible au démarrage (Ctrl+Space nécessite compilation Windows native)
