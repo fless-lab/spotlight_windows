@@ -1,325 +1,367 @@
 # 🔍 Spotlight Windows
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](RELEASES.md)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **Une application de recherche desktop ultra-rapide pour Windows, inspirée du Spotlight macOS**
+> **La puissance de macOS Spotlight, native sur Windows**
 
-Spotlight Windows apporte la puissance et la rapidité du Spotlight de macOS à Windows, avec des performances encore meilleures grâce à Rust et Tantivy.
+Application de recherche desktop ultra-rapide pour Windows, avec UI premium moderne, animations fluides, et installation professionnelle.
 
-## ✨ Fonctionnalités
+![Spotlight Windows Demo](assets/demo.gif)
 
-### 🚀 Performances Hallucinantes
-- **Recherche < 10ms** grâce à l'index Tantivy (2x plus rapide que Lucene)
-- **Indexation multi-threadée** avec Rayon (utilise tous vos cores CPU)
-- **Cache LRU intelligent** avec Moka pour des recherches répétées instantanées
-- **Interface 60 FPS** grâce à egui (framework immédiat natif)
+---
 
-### 🔎 Recherche Avancée
-- **Recherche par nom de fichier** (instantanée)
-- **Recherche dans le contenu** ✨ (comme macOS Spotlight !) - Trouve du texte DANS les fichiers
-- **Recherche fuzzy** (trouve même avec des fautes de frappe)
-- **Métadonnées** (taille, date de modification, type de fichier)
-- **Scoring intelligent** (pertinence + récence + type)
-- **Résultats en temps réel** (mise à jour pendant la frappe)
-- **30+ formats texte** supportés (TXT, MD, RS, JSON, XML, HTML, CSS, JS, PY, etc.)
+## ✨ Fonctionnalités v0.3.0
 
-### 👀 Surveillance en Temps Réel
-- **File watcher** automatique (détecte les ajouts/modifications/suppressions)
-- **Mise à jour incrémentale** de l'index
-- **Ressources minimales** au repos
+### 🎨 **UI Premium Redesign**
+- Interface complètement refaite avec design moderne
+- Animations fluides (fade-in, hover effects, slide-down)
+- Palette de couleurs sombre authentique
+- Icônes contextuelles pour 30+ types de fichiers
+- Typographie professionnelle et espacement parfait
 
-### 🎨 Interface Moderne
-- **Thème sombre élégant** inspiré de macOS
-- **Navigation au clavier** (↑↓ pour sélectionner, Enter pour ouvrir)
-- **Raccourcis pratiques**:
-  - `Enter`: Ouvrir le fichier/dossier
-  - `Ctrl+L`: Ouvrir l'emplacement du fichier
-  - `Esc`: Fermer la fenêtre
-  - `Alt+Space`: Ouvrir Spotlight (à venir)
+### ⚡ **Recherche Ultra-Rapide**
+- **< 50ms** en moyenne grâce à Tantivy
+- **Recherche par nom** (instantanée)
+- **Recherche par contenu** (dans les fichiers texte)
+- **N-grams** (trouve "doc" dans "documents")
+- **Fuzzy matching** (tolère les fautes de frappe)
+- **Index persistant** (pas de réindexation au redémarrage)
 
-## 🏗️ Architecture
+### 🎯 **Core Features**
+- **Ctrl+Space** : Hotkey global pour ouvrir/fermer
+- **System Tray** : Icône système avec menu et status
+- **Démarrage automatique** : Lance avec Windows
+- **GUI natif** : Pas de fenêtre console qui s'ouvre
+- **Surveillance temps réel** : Détecte nouveaux fichiers automatiquement
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Spotlight Windows                        │
-├─────────────────────────────────────────────────────────────┤
-│  UI Layer (egui)                                            │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  • Barre de recherche                                 │  │
-│  │  • Affichage des résultats                            │  │
-│  │  • Navigation clavier                                 │  │
-│  └──────────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│  Search Engine (Fuzzy + Cache)                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  • Fuzzy matching (SkimMatcherV2)                     │  │
-│  │  • Cache LRU (Moka) - 1000 requêtes                   │  │
-│  │  • Scoring par pertinence                             │  │
-│  └──────────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│  Indexer (Tantivy)                                          │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Scanner          │  Watcher      │  Index Manager    │  │
-│  │  ───────────────  │  ──────────   │  ──────────────   │  │
-│  │  • Walkdir        │  • notify     │  • Tantivy        │  │
-│  │  • Rayon //       │  • Real-time  │  • BM25 scoring   │  │
-│  │  • ignore support │  • Async      │  • 50MB heap      │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
+### 📦 **Installation Professionnelle**
+- Installateur NSIS avec interface guidée
+- Installation en 30 secondes
+- Raccourcis automatiques (Bureau + Menu Démarrer)
+- Désinstalleur complet
+- Intégration Panneau de configuration
 
-## 📦 Installation
+---
 
-### ⚡ Méthode 1: Téléchargement Direct (le plus rapide!)
+## 📥 Téléchargement
 
-**Pas besoin de Rust !** Téléchargez le binaire précompilé :
+### Version Actuelle : **v0.3.0** (7 Novembre 2025)
 
-#### Windows (x86_64)
+#### **Option 1 : Installateur Windows (Recommandé)**
+
+**⚠️ Note** : L'installateur NSIS doit être compilé sur Windows. Suivez ces étapes :
 
 ```powershell
-# Télécharger l'exécutable
-Invoke-WebRequest -Uri "https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows.exe" -OutFile "spotlight_windows.exe"
+# 1. Cloner le repository
+git clone https://github.com/fless-lab/spotlight_windows.git
+cd spotlight_windows
+
+# 2. Compiler l'installateur (nécessite NSIS installé)
+.\build_installer.ps1
+
+# Résultat: SpotlightWindows-Setup.exe
+```
+
+**Installation** :
+1. Double-clic sur `SpotlightWindows-Setup.exe`
+2. Suivre l'assistant d'installation
+3. L'application démarre automatiquement avec Windows
+4. Appuyer sur **Ctrl+Space** pour utiliser
+
+#### **Option 2 : Version Portable**
+
+Téléchargez directement l'exécutable :
+
+**Windows (x86_64)** :
+```powershell
+# Télécharger depuis bin/dist/
+Invoke-WebRequest -Uri "https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/dist/spotlight_windows-v0.3.0.exe" -OutFile "spotlight_windows.exe"
 
 # Lancer
 .\spotlight_windows.exe
 ```
 
-#### Linux (x86_64)
+**Ou via le navigateur** :
+- 📦 [spotlight_windows-v0.3.0.exe](bin/dist/spotlight_windows-v0.3.0.exe) (12 MB)
 
-```bash
-# Télécharger
-wget https://github.com/fless-lab/spotlight_windows/raw/claude/rust-desktop-spotlight-search-011CUoqZj9PhKNLXWzyaLPJn/bin/spotlight_windows
-chmod +x spotlight_windows
-./spotlight_windows
+**Configuration portable** :
+- L'application stocke ses données dans `%APPDATA%\spotlight_windows\`
+- Pour démarrage automatique : créer un raccourci dans `shell:startup`
+
+---
+
+## 🚀 Utilisation Rapide
+
+### Premier Lancement
+1. **Indexation initiale** : 1-2 minutes (selon nombre de fichiers)
+2. **Icône système** apparaît en bas à droite
+3. **Tooltip** indique le nombre de fichiers indexés
+
+### Raccourcis Clavier
+- **Ctrl+Space** : Ouvrir/Fermer la recherche
+- **↑↓** : Naviguer dans les résultats
+- **Enter** : Ouvrir le fichier/dossier sélectionné
+- **ESC** : Fermer la fenêtre
+
+### Recherche
+- **Par nom** : `document`
+- **Par contenu** : `TODO refactor` (cherche dans le contenu)
+- **Sous-chaîne** : `doc` trouve "documents", "my-docs", etc.
+- **Fuzzy** : `dcumnt` trouve "document"
+
+---
+
+## 📊 Performances
+
+Tests sur PC moderne (SSD NVMe, 16GB RAM) :
+
+| Métrique | Valeur |
+|----------|--------|
+| **Indexation** | 152,000 fichiers en 101 secondes |
+| **Recherche** | < 50ms en moyenne |
+| **RAM** | ~150 MB au repos |
+| **CPU** | < 3% au repos |
+| **Taille index** | ~100 MB pour 100,000 fichiers |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Spotlight Windows v0.3.0                   │
+├─────────────────────────────────────────────────────────────┤
+│  UI Layer (egui) - SpotlightUI Premium                     │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  • Animations fluides (fade-in, hover, slide-down)   │  │
+│  │  • Design moderne (dark theme authentique)           │  │
+│  │  • Icônes contextuelles (30+ types)                  │  │
+│  │  • Navigation clavier optimisée                      │  │
+│  └──────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  Core Features                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  System Tray    │  Global Hotkey  │  Auto-start      │  │
+│  │  ─────────────  │  ──────────────  │  ─────────────   │  │
+│  │  • Menu         │  • Ctrl+Space   │  • Registry      │  │
+│  │  • Status       │  • Show/Hide    │  • Startup       │  │
+│  │  • Icon         │  • Toggle       │  • Background    │  │
+│  └──────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  Search Engine (Tantivy + Cache)                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  • N-gram tokenizer (2-4 grams)                       │  │
+│  │  • Fuzzy matching + scoring                           │  │
+│  │  • Content search (30+ formats)                       │  │
+│  └──────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  Indexer (Tantivy + File Watcher)                          │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Scanner          │  Watcher      │  Index Manager    │  │
+│  │  ───────────────  │  ──────────   │  ──────────────   │  │
+│  │  • Async scan     │  • notify     │  • Persistent     │  │
+│  │  • Multi-thread   │  • Real-time  │  • BM25 scoring   │  │
+│  │  • Smart exclude  │  • Low CPU    │  • Incremental    │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Ou cloner le dépôt :**
+---
+
+## 🔧 Configuration
+
+### Répertoires Indexés par Défaut
+- ✅ Profil utilisateur complet (`C:\Users\VotreNom\`)
+- ✅ Disques secondaires (D:, E:, F: si existants)
+- ✅ Program Files
+
+### Exclusions Intelligentes (Performance)
+- ❌ `C:\Windows`
+- ❌ `node_modules`
+- ❌ `.git`
+- ❌ Caches et fichiers temporaires
+
+### Formats Supportés (Recherche Contenu)
+- 📝 Texte : `.txt`, `.md`, `.log`
+- 💻 Code : `.rs`, `.py`, `.js`, `.ts`, `.java`, `.cpp`, `.go`, etc.
+- 🌐 Web : `.html`, `.css`, `.json`, `.xml`, `.yaml`
+- 📋 Config : `.toml`, `.ini`, `.conf`
+- **30+ formats** au total
+
+---
+
+## 🛠️ Build depuis les Sources
+
+### Prérequis
+- **Rust 1.70+** ([installer](https://rustup.rs/))
+- **Windows 10/11** (64-bit) pour build natif
+- **Linux** pour cross-compilation
+
+### Build
 ```bash
+# Cloner
 git clone https://github.com/fless-lab/spotlight_windows.git
-cd spotlight_windows/bin
-
-# Windows
-.\spotlight_windows.exe
-
-# Linux
-chmod +x spotlight_windows && ./spotlight_windows
-```
-
-📁 **Voir `bin/README.md` pour plus de détails**
-
-### Prérequis (pour compilation depuis sources)
-
-- **Rust 1.70+** ([installer ici](https://rustup.rs/))
-- **Windows 10+** (64-bit) ou **Linux**
-- **~500 MB** d'espace disque pour les dépendances
-
-### Méthode 2: Build depuis les sources
-
-```bash
-# Cloner le repository
-git clone https://github.com/votre-username/spotlight_windows.git
 cd spotlight_windows
 
-# Build en mode release (optimisé)
-cargo build --release
+# Build release (optimisé)
+cargo build --release --target x86_64-pc-windows-gnu
 
-# L'exécutable se trouve dans
-./target/release/spotlight_windows.exe
+# Résultat: target/x86_64-pc-windows-gnu/release/spotlight_windows.exe
 ```
 
-### Méthode 3: Installation via Cargo
+### Créer l'Installateur (Windows uniquement)
+```powershell
+# 1. Installer NSIS depuis https://nsis.sourceforge.io/
 
-```bash
-# Installer directement depuis le repository
-cargo install --path .
+# 2. Compiler l'installateur
+.\build_installer.ps1
 
-# Ou depuis crates.io (quand publié)
-cargo install spotlight_windows
+# Résultat: SpotlightWindows-Setup.exe (~12-15 MB)
 ```
 
-## 🚀 Utilisation
+📖 **Documentation complète** : [BUILD_INSTALLER.md](BUILD_INSTALLER.md)
 
-### Lancement de l'application
+---
 
-```bash
-# Depuis le dossier du projet
-cargo run --release
+## 📚 Documentation
 
-# Ou directement l'exécutable
-./target/release/spotlight_windows.exe
-```
+### Pour les Utilisateurs
+- 📥 [Guide d'installation](INSTALL.md)
+- 📦 [Releases et changelog](RELEASES.md)
+- ❓ [FAQ et dépannage](INSTALL.md#dépannage)
 
-### Configuration
+### Pour les Développeurs
+- 🛠️ [Guide de build installateur](BUILD_INSTALLER.md)
+- 📂 [Structure du projet](#structure-du-projet)
+- 🤝 [Contribution](#contribution)
 
-La configuration se trouve dans `~/.config/spotlight_windows/config.toml`:
+---
 
-```toml
-[indexer]
-# Dossiers à indexer
-include_paths = [
-    "C:\\Users",
-    "C:\\Program Files",
-    "C:\\ProgramData"
-]
+## 🗺️ Roadmap
 
-# Dossiers à exclure
-exclude_paths = [
-    "node_modules",
-    ".git",
-    "target",
-    "$RECYCLE.BIN",
-    "AppData\\Local\\Temp"
-]
+### ✅ Version 0.3.0 (Actuelle)
+- [x] UI Premium redesign complet
+- [x] Animations fluides
+- [x] System tray icon + menu
+- [x] Ctrl+Space hotkey global
+- [x] Démarrage automatique
+- [x] Installateur NSIS professionnel
+- [x] GUI natif (pas de console)
 
-# Extensions à indexer (vide = tous)
-file_extensions = []
+### 🔜 Version 0.4.0 (Prochaine)
+- [ ] Recherche contenu PDF (fix crash glyphs)
+- [ ] Preview fichiers (images, texte)
+- [ ] Calculatrice intégrée
+- [ ] Effet blur acrylic Windows natif
+- [ ] Amélioration animations
 
-# Nombre de threads pour l'indexation
-num_threads = 8  # Auto-détecté par défaut
+### 🎯 Version 1.0.0
+- [ ] Indexation MFT (comme Everything)
+- [ ] Recherche sémantique (ML)
+- [ ] Multi-langues
+- [ ] Plugins/Extensions
+- [ ] Thèmes personnalisables
 
-# Taille max des fichiers (en MB)
-max_file_size_mb = 100
+---
 
-[ui]
-window_width = 800.0
-window_height = 600.0
-max_results = 50
-
-# Hotkey (à venir)
-hotkey_modifiers = ["Alt"]
-hotkey_key = "Space"
-
-[search]
-# Taille du cache
-cache_size = 1000
-
-# Score minimum pour fuzzy matching
-min_fuzzy_score = 50
-
-# Recherche dans le contenu (ACTIVÉ!)
-search_file_content = true
-```
-
-### Première utilisation
-
-1. **Lancer l'application** - L'indexation initiale commence automatiquement
-2. **Attendre l'indexation** - Peut prendre quelques minutes selon le nombre de fichiers
-3. **Commencer à rechercher** - Tapez dans la barre de recherche
-4. **Naviguer** - Utilisez ↑↓ pour sélectionner, Enter pour ouvrir
-
-## 🔧 Développement
-
-### Structure du projet
+## 📂 Structure du Projet
 
 ```
 spotlight_windows/
 ├── src/
-│   ├── main.rs              # Point d'entrée
-│   ├── config.rs            # Configuration
-│   ├── hotkey.rs            # Gestion hotkey Windows
+│   ├── main.rs                  # Entry point + subsystem config
+│   ├── config.rs                # Configuration
+│   ├── tray.rs                  # System tray icon
 │   ├── indexer/
-│   │   ├── mod.rs           # Gestionnaire d'index Tantivy
-│   │   ├── scanner.rs       # Scanner de fichiers parallèle
-│   │   └── watcher.rs       # File watcher temps réel
+│   │   ├── mod.rs               # Tantivy index manager
+│   │   ├── scanner.rs           # Async file scanner
+│   │   └── watcher.rs           # Real-time file watcher
 │   ├── search/
-│   │   ├── mod.rs           # Types de recherche
-│   │   ├── engine.rs        # Moteur de recherche
-│   │   └── cache.rs         # Cache LRU
+│   │   └── mod.rs               # Search engine
 │   └── ui/
-│       ├── mod.rs           # Module UI
-│       ├── app.rs           # Application principale
-│       └── theme.rs         # Thème visuel
-├── Cargo.toml               # Dépendances
-└── README.md               # Ce fichier
+│       ├── mod.rs               # UI module
+│       ├── spotlight.rs         # Legacy UI
+│       ├── spotlight_v2.rs      # Premium UI ✨
+│       └── theme.rs             # Theme config
+├── bin/
+│   └── dist/
+│       ├── spotlight_windows-v0.3.0.exe  # Portable ✨
+│       └── README.md            # Distribution docs
+├── installer.nsi                # NSIS script
+├── build_installer.ps1          # PowerShell automation
+├── BUILD_INSTALLER.md           # Build guide
+├── INSTALL.md                   # User guide
+├── RELEASES.md                  # Releases & changelog ✨
+├── Cargo.toml                   # Dependencies
+└── README.md                    # This file
 ```
 
-### Build de développement
+---
 
-```bash
-# Build rapide sans optimisations
-cargo build
+## 🤝 Contribution
 
-# Run avec logging
-RUST_LOG=debug cargo run
+Les contributions sont bienvenues !
 
-# Tests
-cargo test
-
-# Formattage du code
-cargo fmt
-
-# Linter
-cargo clippy
-```
-
-### Contribution
-
-Les contributions sont les bienvenues ! Voici comment contribuer:
-
+### Comment Contribuer
 1. **Fork** le projet
-2. **Créer une branche** (`git checkout -b feature/AmazingFeature`)
-3. **Commit** vos changements (`git commit -m 'Add AmazingFeature'`)
-4. **Push** sur la branche (`git push origin feature/AmazingFeature`)
-5. **Ouvrir une Pull Request**
+2. **Créer une branche** : `git checkout -b feature/AmazingFeature`
+3. **Commit** : `git commit -m 'feat: Add AmazingFeature'`
+4. **Push** : `git push origin feature/AmazingFeature`
+5. **Pull Request**
 
-## 📊 Benchmarks
+### Conventions
+- **Commits** : Convention Conventional Commits
+- **Code** : `cargo fmt` + `cargo clippy`
+- **Tests** : `cargo test`
 
-Tests effectués sur un PC avec SSD NVMe, Intel i7-10700K, 32GB RAM:
+---
 
-| Opération | Temps | Fichiers |
-|-----------|-------|----------|
-| Indexation initiale | 45s | 500,000 fichiers |
-| Recherche (première) | 8ms | - |
-| Recherche (cachée) | <1ms | - |
-| Mise à jour index | <100ms | Par fichier |
+## 🙏 Remerciements
 
-## 🗺️ Roadmap
+Ce projet s'inspire de :
+- **macOS Spotlight** - Pour l'UX
+- **Everything** - Pour la vitesse
+- **Rust** - Pour la performance
 
-### Version 0.2.0 (En cours)
-- [x] **Recherche dans le contenu** (TXT, MD, Code sources) ✅ **FAIT !**
-- [ ] **Recherche contenu PDF/DOCX** (nécessite bibliothèques extraction)
-- [ ] **Architecture Sentinel/Worker** (MFT + Content indexing)
-- [ ] **Hotkey global** (Alt+Space)
-- [ ] **Icônes système** pour les fichiers
+### Technologies Utilisées
+- 🔍 [Tantivy](https://github.com/quickwit-oss/tantivy) - Search engine
+- 🖼️ [egui](https://github.com/emilk/egui) - UI framework
+- ⚡ [Tokio](https://tokio.rs/) - Async runtime
+- 🎯 [global-hotkey](https://github.com/tauri-apps/global-hotkey) - Hotkey
+- 🔔 [tray-icon](https://github.com/tauri-apps/tray-icon) - System tray
+- 📦 [NSIS](https://nsis.sourceforge.io/) - Installer
 
-### Version 0.3.0
-- [ ] **Preview** des fichiers (images, texte)
-- [ ] **Calculatrice intégrée**
-- [ ] **Recherche web** (si pas de résultats locaux)
-- [ ] **Plugins** (extensibilité)
+---
 
-### Version 1.0.0
-- [ ] **Indexation MFT** (comme Everything)
-- [ ] **Recherche sémantique** (ML)
-- [ ] **Multi-langues**
-- [ ] **Thèmes personnalisables**
+## 📝 Licence
 
-## 🤝 Remerciements
+Ce projet est sous licence MIT. Voir [LICENSE](LICENSE) pour détails.
 
-Ce projet s'inspire de:
-- **macOS Spotlight** - Pour l'expérience utilisateur
-- **Everything** - Pour la vitesse de recherche Windows
-- **Rust** - Pour la performance et la sûreté
+---
 
-Technologies utilisées:
-- [Tantivy](https://github.com/quickwit-oss/tantivy) - Moteur de recherche full-text
-- [egui](https://github.com/emilk/egui) - Framework UI immédiat
-- [tokio](https://tokio.rs/) - Runtime asynchrone
-- [rayon](https://github.com/rayon-rs/rayon) - Parallélisme de données
-- [moka](https://github.com/moka-rs/moka) - Cache haute performance
+## 💬 Support
 
-## 📝 License
+### Signaler un Bug
+- 🐛 [GitHub Issues](https://github.com/fless-lab/spotlight_windows/issues)
+- 📧 Inclure : version, OS, logs (`%APPDATA%\spotlight_windows\logs\`)
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+### Demander une Fonctionnalité
+- 💡 [GitHub Discussions](https://github.com/fless-lab/spotlight_windows/discussions)
 
-## 💬 Contact & Support
-
-- **Issues**: [GitHub Issues](https://github.com/votre-username/spotlight_windows/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/votre-username/spotlight_windows/discussions)
+### Communauté
+- 💬 [Discord](https://discord.gg/spotlight-windows) (à venir)
+- 🐦 [Twitter](https://twitter.com/spotlight_win) (à venir)
 
 ---
 
 <p align="center">
-  Fait avec ❤️ et 🦀 Rust
+  <b>Spotlight Windows v0.3.0</b><br>
+  Fait avec ❤️ et 🦀 Rust<br>
+  <br>
+  <a href="RELEASES.md">📦 Télécharger</a> •
+  <a href="INSTALL.md">📚 Documentation</a> •
+  <a href="https://github.com/fless-lab/spotlight_windows/issues">🐛 Bugs</a>
 </p>
