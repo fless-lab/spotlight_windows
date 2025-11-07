@@ -348,25 +348,58 @@ impl SpotlightUI {
             // Message d'accueil
             ui.add_space(40.0);
             ui.vertical_centered(|ui| {
-                ui.label(
-                    egui::RichText::new("🔍")
-                        .size(48.0)
-                        .color(TEXT_TERTIARY),
-                );
-                ui.add_space(12.0);
-                ui.label(
-                    egui::RichText::new("Tapez pour rechercher")
-                        .size(16.0)
-                        .color(TEXT_SECONDARY),
-                );
-                ui.label(
-                    egui::RichText::new(format!(
-                        "{} fichiers indexés",
-                        self.indexer.num_documents()
-                    ))
-                    .size(13.0)
-                    .color(TEXT_TERTIARY),
-                );
+                let num_docs = self.indexer.num_documents();
+
+                // Afficher statut indexation
+                if num_docs < 1000 {
+                    // Probablement en cours d'indexation
+                    ui.label(
+                        egui::RichText::new("⏳")
+                            .size(48.0)
+                            .color(ACCENT_BLUE),
+                    );
+                    ui.add_space(12.0);
+                    ui.label(
+                        egui::RichText::new("Indexation en cours...")
+                            .size(16.0)
+                            .color(ACCENT_BLUE),
+                    );
+                    ui.add_space(8.0);
+                    ui.label(
+                        egui::RichText::new(format!("{} fichiers indexés", num_docs))
+                            .size(13.0)
+                            .color(TEXT_SECONDARY),
+                    );
+                    ui.add_space(12.0);
+                    ui.label(
+                        egui::RichText::new("⚠️ Ne fermez pas pendant l'indexation")
+                            .size(12.0)
+                            .color(Color32::from_rgb(255, 200, 0)),
+                    );
+                    ui.label(
+                        egui::RichText::new("(Laissez tourner 1-2 minutes)")
+                            .size(11.0)
+                            .color(TEXT_TERTIARY),
+                    );
+                } else {
+                    // Indexation terminée
+                    ui.label(
+                        egui::RichText::new("🔍")
+                            .size(48.0)
+                            .color(TEXT_TERTIARY),
+                    );
+                    ui.add_space(12.0);
+                    ui.label(
+                        egui::RichText::new("Tapez pour rechercher")
+                            .size(16.0)
+                            .color(TEXT_SECONDARY),
+                    );
+                    ui.label(
+                        egui::RichText::new(format!("{} fichiers indexés ✅", num_docs))
+                            .size(13.0)
+                            .color(Color32::from_rgb(100, 200, 100)),
+                    );
+                }
             });
             return;
         }
