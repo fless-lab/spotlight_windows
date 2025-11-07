@@ -9,6 +9,7 @@ use egui::{
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::time::Instant;
+use tracing::info;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -525,11 +526,9 @@ impl eframe::App for SpotlightUI {
         // === GESTION CLAVIER ===
         ctx.input(|i| {
             if i.key_pressed(Key::Escape) {
-                self.is_visible = false;
-                self.animation_progress = 0.0;
-                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(false));
-                self.query.clear();
-                self.results.clear();
+                // ESC ferme complètement l'application (pas de Ctrl+Space pour rouvrir en cross-compile)
+                info!("ESC pressé - Fermeture de l'application");
+                std::process::exit(0);
             }
 
             if i.key_pressed(Key::ArrowDown) && !self.results.is_empty() {
