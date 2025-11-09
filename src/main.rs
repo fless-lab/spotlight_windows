@@ -10,7 +10,7 @@ mod ui;
 use anyhow::Result;
 use config::Config;
 use global_hotkey::{hotkey::{HotKey, Code, Modifiers}, GlobalHotKeyManager, GlobalHotKeyEvent};
-use indexer::{scanner::Scanner, watcher::FileWatcher, Indexer};
+use indexer::{watcher::FileWatcher, Indexer};
 use search::SearchEngine;
 use std::sync::{Arc, mpsc::{channel, Sender}};
 use tracing::{error, info};
@@ -68,30 +68,9 @@ async fn main() -> Result<()> {
             }
         });
     } else {
-        info!("📊 Index vide - Lancement du scan initial...");
-
-        // Scanner initial des fichiers
-        let scanner = Scanner::new(config.clone(), indexer.clone());
-
-        let scanner_clone = scanner;
-        let indexer_clone = indexer.clone();
-        let config_clone = config.clone();
-
-        tokio::spawn(async move {
-            if let Err(e) = scanner_clone.initial_scan().await {
-                error!("Erreur lors du scan initial: {}", e);
-            } else {
-                info!("✅ Scan initial terminé avec succès");
-
-                // Démarrer le file watcher après le scan initial
-                let watcher = FileWatcher::new(config_clone.clone(), indexer_clone);
-                if let Err(e) = watcher.start().await {
-                    error!("Erreur lors du démarrage du file watcher: {}", e);
-                } else {
-                    info!("✅ File watcher démarré");
-                }
-            }
-        });
+        info!("📊 Index vide - L'utilisateur devra lancer l'indexation via l'UI");
+        // L'indexation sera lancée manuellement via le bouton "Démarrer l'indexation"
+        // dans l'écran de First Run Setup
     }
 
     // Créer le moteur de recherche

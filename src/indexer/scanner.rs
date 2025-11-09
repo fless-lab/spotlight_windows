@@ -23,7 +23,8 @@ impl Scanner {
         info!("Démarrage du scan initial...");
         let start = std::time::Instant::now();
 
-        let indexed_count = Arc::new(AtomicU64::new(0));
+        // Démarrer l'indexation
+        self.indexer.start_indexing();
 
         for root_path in &self.config.indexer.include_paths {
             if !root_path.exists() {
@@ -46,12 +47,12 @@ impl Scanner {
 
             let config = self.config.clone();
             let entries_clone = entries.clone();
-            let indexed_count_clone = indexed_count.clone();
+            let scanned_count = self.indexer.scanned_count.clone();
 
             walker.run(|| {
                 let config = config.clone();
                 let entries = entries_clone.clone();
-                let indexed_count = indexed_count_clone.clone();
+                let scanned_count = scanned_count.clone();
 
                 Box::new(move |result| {
                     if let Ok(entry) = result {
@@ -73,7 +74,7 @@ impl Scanner {
                                 }
 
                                 entries.lock().unwrap().push(file_entry);
-                                indexed_count.fetch_add(1, Ordering::Relaxed);
+                                scanned_count.fetch_add(1, Ordering::Relaxed);
                             }
                         }
                     }
@@ -88,6 +89,7 @@ impl Scanner {
             };
 
             let indexer = self.indexer.clone();
+            let indexed_count = self.indexer.indexed_count.clone();
 
             info!("Indexation de {} fichiers...", entries_vec.len());
 
@@ -96,6 +98,8 @@ impl Scanner {
                 let indexer = indexer.clone();
                 if let Err(e) = indexer.add_file(entry).await {
                     warn!("Erreur lors de l'indexation: {}", e);
+                } else {
+                    indexed_count.fetch_add(1, Ordering::Relaxed);
                 }
             }
         }
@@ -103,8 +107,11 @@ impl Scanner {
         // Commit l'index
         self.indexer.commit().await?;
 
+        // Terminer l'indexation
+        self.indexer.finish_indexing();
+
         let elapsed = start.elapsed();
-        let count = indexed_count.load(Ordering::Relaxed);
+        let count = self.indexer.scanned_count.load(Ordering::Relaxed);
 
         info!(
             "Scan initial terminé: {} fichiers indexés en {:.2}s ({:.0} fichiers/s)",

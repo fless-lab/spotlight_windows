@@ -4,12 +4,21 @@ pub mod watcher;
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tantivy::schema::*;
 use tantivy::{doc, Index, IndexWriter};
 use tokio::sync::RwLock;
 use tracing::info;
 
 use crate::config::Config;
+
+/// Progression de l'indexation
+#[derive(Debug, Clone, Copy)]
+pub struct IndexingProgress {
+    pub current: u64,
+    pub total: u64,
+    pub is_complete: bool,
+}
 
 /// Structure représentant un fichier indexé
 #[derive(Debug, Clone)]
@@ -30,6 +39,10 @@ pub struct Indexer {
     schema: Schema,
     #[allow(dead_code)]
     config: Arc<Config>,
+    // Progression de l'indexation
+    pub scanned_count: Arc<AtomicU64>,
+    pub indexed_count: Arc<AtomicU64>,
+    pub is_indexing: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Indexer {
@@ -101,6 +114,9 @@ impl Indexer {
             writer: Arc::new(RwLock::new(writer)),
             schema,
             config,
+            scanned_count: Arc::new(AtomicU64::new(0)),
+            indexed_count: Arc::new(AtomicU64::new(0)),
+            is_indexing: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         })
     }
 
@@ -190,5 +206,30 @@ impl Indexer {
         } else {
             0
         }
+    }
+
+    /// Retourne la progression de l'indexation
+    pub fn get_progress(&self) -> IndexingProgress {
+        let scanned = self.scanned_count.load(Ordering::Relaxed);
+        let indexed = self.indexed_count.load(Ordering::Relaxed);
+        let is_indexing = self.is_indexing.load(Ordering::Relaxed);
+
+        IndexingProgress {
+            current: indexed,
+            total: scanned,
+            is_complete: !is_indexing,
+        }
+    }
+
+    /// Démarre l'indexation
+    pub fn start_indexing(&self) {
+        self.is_indexing.store(true, Ordering::Relaxed);
+        self.scanned_count.store(0, Ordering::Relaxed);
+        self.indexed_count.store(0, Ordering::Relaxed);
+    }
+
+    /// Termine l'indexation
+    pub fn finish_indexing(&self) {
+        self.is_indexing.store(false, Ordering::Relaxed);
     }
 }

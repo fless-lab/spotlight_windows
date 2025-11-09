@@ -1,4 +1,4 @@
-use crate::indexer::Indexer;
+use crate::indexer::{Indexer, IndexingProgress};
 use crate::search::{SearchEngine, SearchResult};
 use crate::tray::SystemTray;
 use crate::WindowEvent;
@@ -10,6 +10,14 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::info;
+
+/// État de l'application
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum AppState {
+    FirstRun,      // Premier lancement - écran de setup
+    Indexing,      // Indexation en cours
+    Ready,         // Prêt à chercher
+}
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -57,6 +65,7 @@ pub struct SpotlightUI {
     system_tray: Option<SystemTray>,
 
     // État
+    app_state: AppState,
     query: String,
     results: Vec<SearchResult>,
     selected_index: usize,
@@ -68,6 +77,9 @@ pub struct SpotlightUI {
     last_frame_time: Instant,
     last_tooltip_update: Instant,
     item_hover_indices: Vec<f32>, // Animation hover pour chaque item
+
+    // Setup
+    setup_completed: bool,
 }
 
 impl SpotlightUI {
@@ -99,6 +111,17 @@ impl SpotlightUI {
         });
 
         let now = Instant::now();
+
+        // Vérifier si le setup a été complété
+        let setup_completed = Self::is_setup_completed();
+        let app_state = if !setup_completed {
+            AppState::FirstRun
+        } else if indexer.num_documents() == 0 {
+            AppState::FirstRun // Si pas de documents, considérer comme premier lancement
+        } else {
+            AppState::Ready
+        };
+
         Self {
             search_engine,
             indexer,
@@ -107,6 +130,7 @@ impl SpotlightUI {
             window_event_receiver,
             window_event_sender,
             system_tray,
+            app_state,
             query: String::new(),
             results: Vec::new(),
             selected_index: 0,
@@ -116,7 +140,32 @@ impl SpotlightUI {
             last_frame_time: now,
             last_tooltip_update: now,
             item_hover_indices: vec![],
+            setup_completed,
         }
+    }
+
+    /// Vérifie si le setup a été complété
+    fn is_setup_completed() -> bool {
+        let config_path = Self::setup_config_path();
+        config_path.exists()
+    }
+
+    /// Retourne le chemin du fichier de configuration setup
+    fn setup_config_path() -> std::path::PathBuf {
+        let mut path = dirs::data_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+        path.push("spotlight_windows");
+        path.push("setup_completed");
+        path
+    }
+
+    /// Marque le setup comme complété
+    fn mark_setup_completed() -> anyhow::Result<()> {
+        let config_path = Self::setup_config_path();
+        if let Some(parent) = config_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&config_path, "1")?;
+        Ok(())
     }
 
     fn perform_search(&mut self) {
@@ -205,6 +254,246 @@ impl SpotlightUI {
             // Défaut
             _ => "📄",
         }
+    }
+
+    /// Écran de premier lancement (First Run Setup)
+    fn render_first_run_screen(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        ui.add_space(40.0);
+
+        ui.vertical_centered(|ui| {
+            // Icône
+            ui.label(
+                egui::RichText::new("🔍")
+                    .size(72.0)
+                    .color(TEXT_PRIMARY),
+            );
+            ui.add_space(16.0);
+
+            // Titre
+            ui.label(
+                egui::RichText::new("Bienvenue sur Spotlight Windows")
+                    .size(24.0)
+                    .color(TEXT_PRIMARY)
+                    .strong(),
+            );
+            ui.add_space(8.0);
+
+            // Description
+            ui.label(
+                egui::RichText::new("Recherche ultra-rapide de vos fichiers")
+                    .size(14.0)
+                    .color(TEXT_SECONDARY),
+            );
+            ui.add_space(32.0);
+
+            // Explication
+            egui::Frame::none()
+                .fill(bg_search())
+                .rounding(Rounding::same(12.0))
+                .inner_margin(Margin::same(20.0))
+                .show(ui, |ui| {
+                    ui.set_width(600.0);
+                    ui.label(
+                        egui::RichText::new("🗂️  Indexation initiale")
+                            .size(16.0)
+                            .color(TEXT_PRIMARY)
+                            .strong(),
+                    );
+                    ui.add_space(12.0);
+
+                    ui.label(
+                        egui::RichText::new(
+                            "Spotlight va scanner vos documents pour créer un index de recherche.\n\n\
+                             • Documents, Downloads, Desktop\n\
+                             • Recherche instantanée (< 50ms)\n\
+                             • Recherche dans le contenu des fichiers\n\
+                             • Durée : 1-2 minutes selon le nombre de fichiers\n\n\
+                             Cette indexation ne se fait qu'une seule fois.\n\
+                             Les nouveaux fichiers seront détectés automatiquement."
+                        )
+                        .size(13.0)
+                        .color(TEXT_SECONDARY),
+                    );
+                });
+
+            ui.add_space(32.0);
+
+            // Bouton "Démarrer l'indexation"
+            let button = egui::Button::new(
+                egui::RichText::new("🚀  Démarrer l'indexation")
+                    .size(16.0)
+                    .color(Color32::WHITE)
+                    .strong(),
+            )
+            .fill(ACCENT_BLUE)
+            .rounding(Rounding::same(10.0))
+            .min_size(Vec2::new(250.0, 48.0));
+
+            if ui.add(button).clicked() {
+                // Lancer l'indexation
+                self.app_state = AppState::Indexing;
+
+                // Lancer le scan initial en arrière-plan
+                let indexer = self.indexer.clone();
+                let config = std::sync::Arc::new(
+                    crate::config::Config::load().unwrap_or_default()
+                );
+                tokio::spawn(async move {
+                    let scanner = crate::indexer::scanner::Scanner::new(config.clone(), indexer.clone());
+                    if let Err(e) = scanner.initial_scan().await {
+                        tracing::error!("Erreur lors du scan initial: {}", e);
+                    } else {
+                        tracing::info!("✅ Scan initial terminé avec succès");
+
+                        // Démarrer le file watcher après le scan initial
+                        let watcher = crate::indexer::watcher::FileWatcher::new(config, indexer);
+                        if let Err(e) = watcher.start().await {
+                            tracing::error!("Erreur lors du démarrage du file watcher: {}", e);
+                        } else {
+                            tracing::info!("✅ File watcher démarré");
+                        }
+                    }
+                });
+            }
+
+            ui.add_space(40.0);
+        });
+    }
+
+    /// Écran d'indexation en cours avec progression
+    fn render_indexing_screen(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        // Vérifier la progression
+        let progress = self.indexer.get_progress();
+
+        // Si terminé, passer à Ready
+        if progress.is_complete && progress.current > 0 {
+            self.app_state = AppState::Ready;
+            let _ = Self::mark_setup_completed();
+            self.setup_completed = true;
+            return;
+        }
+
+        ui.add_space(40.0);
+
+        ui.vertical_centered(|ui| {
+            // Icône animée
+            ui.label(
+                egui::RichText::new("⏳")
+                    .size(64.0)
+                    .color(ACCENT_BLUE),
+            );
+            ui.add_space(16.0);
+
+            // Titre
+            ui.label(
+                egui::RichText::new("Indexation en cours...")
+                    .size(22.0)
+                    .color(TEXT_PRIMARY)
+                    .strong(),
+            );
+            ui.add_space(24.0);
+
+            // Compteur
+            ui.label(
+                egui::RichText::new(format!(
+                    "📊  {} fichiers scannés",
+                    progress.total
+                ))
+                .size(18.0)
+                .color(TEXT_SECONDARY),
+            );
+
+            if progress.current > 0 {
+                ui.add_space(8.0);
+                ui.label(
+                    egui::RichText::new(format!(
+                        "✅  {} fichiers indexés",
+                        progress.current
+                    ))
+                    .size(15.0)
+                    .color(TEXT_TERTIARY),
+                );
+            }
+
+            ui.add_space(32.0);
+
+            // Barre de progression (indéterminée si total == 0)
+            egui::Frame::none()
+                .fill(bg_search())
+                .rounding(Rounding::same(8.0))
+                .inner_margin(Margin::symmetric(4.0, 4.0))
+                .show(ui, |ui| {
+                    ui.set_width(500.0);
+                    ui.set_height(8.0);
+
+                    if progress.total > 0 {
+                        let ratio = progress.current as f32 / progress.total as f32;
+                        let filled_width = 492.0 * ratio;
+
+                        let (_, painter) = ui.allocate_painter(
+                            Vec2::new(492.0, 8.0),
+                            Sense::hover(),
+                        );
+
+                        painter.rect_filled(
+                            egui::Rect::from_min_size(
+                                painter.clip_rect().min,
+                                Vec2::new(filled_width, 8.0),
+                            ),
+                            Rounding::same(6.0),
+                            ACCENT_BLUE,
+                        );
+                    }
+                });
+
+            ui.add_space(24.0);
+
+            // Message
+            ui.label(
+                egui::RichText::new("Veuillez patienter, cela peut prendre 1-2 minutes...")
+                    .size(13.0)
+                    .color(TEXT_TERTIARY)
+                    .italics(),
+            );
+
+            ui.add_space(40.0);
+        });
+    }
+
+    /// UI de recherche normale (état Ready)
+    fn render_search_ui(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        ui.add_space(16.0);
+
+        // === BARRE DE RECHERCHE ===
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            ui.add_space(16.0);
+            ui.vertical(|ui| {
+                ui.set_width(WINDOW_WIDTH - 32.0);
+                self.render_search_bar(ui, ctx);
+            });
+        });
+        ui.add_space(12.0);
+
+        // === SÉPARATEUR ===
+        if !self.results.is_empty() {
+            ui.horizontal(|ui| {
+                ui.add_space(16.0);
+                ui.separator();
+            });
+            ui.add_space(8.0);
+        }
+
+        // === RÉSULTATS ===
+        ui.horizontal(|ui| {
+            ui.add_space(16.0);
+            ui.vertical(|ui| {
+                ui.set_width(WINDOW_WIDTH - 32.0);
+                self.render_results(ui, ctx);
+            });
+        });
+
+        ui.add_space(16.0);
     }
 
     fn render_search_bar(&mut self, ui: &mut egui::Ui, _ctx: &egui::Context) {
@@ -582,38 +871,18 @@ impl eframe::App for SpotlightUI {
                     window_frame.show(ui, |ui| {
                         ui.set_width(WINDOW_WIDTH * scale);
 
-                        ui.add_space(16.0);
-
-                        // === BARRE DE RECHERCHE ===
-                        ui.add_space(4.0);
-                        ui.horizontal(|ui| {
-                            ui.add_space(16.0);
-                            ui.vertical(|ui| {
-                                ui.set_width(WINDOW_WIDTH - 32.0);
-                                self.render_search_bar(ui, ctx);
-                            });
-                        });
-                        ui.add_space(12.0);
-
-                        // === SÉPARATEUR ===
-                        if !self.results.is_empty() {
-                            ui.horizontal(|ui| {
-                                ui.add_space(16.0);
-                                ui.separator();
-                            });
-                            ui.add_space(8.0);
+                        // Router vers le bon écran selon l'état
+                        match self.app_state {
+                            AppState::FirstRun => {
+                                self.render_first_run_screen(ui, ctx);
+                            }
+                            AppState::Indexing => {
+                                self.render_indexing_screen(ui, ctx);
+                            }
+                            AppState::Ready => {
+                                self.render_search_ui(ui, ctx);
+                            }
                         }
-
-                        // === RÉSULTATS ===
-                        ui.horizontal(|ui| {
-                            ui.add_space(16.0);
-                            ui.vertical(|ui| {
-                                ui.set_width(WINDOW_WIDTH - 32.0);
-                                self.render_results(ui, ctx);
-                            });
-                        });
-
-                        ui.add_space(16.0);
                     });
                 });
             });
